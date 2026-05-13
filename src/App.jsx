@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "./supabase";
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=Source+Serif+4:opsz,wght@8..60,300;8..60,400;8..60,600&family=JetBrains+Mono:wght@400;500&display=swap');
@@ -169,8 +170,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .profile-user{font-family:var(--fmono);font-size:11px;color:var(--gold);margin-top:3px}
 .profile-bio{font-size:12px;color:var(--text-dim);margin-top:6px}
 .info-box{background:rgba(200,168,75,.06);border:1px solid rgba(200,168,75,.2);border-radius:3px;padding:14px 18px;font-size:13px;color:var(--cream-dim);line-height:1.7;margin-bottom:22px}
-
-/* ABOUT */
 .about-tabs{display:flex;gap:0;border:1px solid var(--border);border-radius:3px;overflow:hidden;margin-bottom:24px}
 .about-tab{flex:1;padding:12px 10px;text-align:center;cursor:pointer;font-family:var(--fmono);font-size:11px;letter-spacing:.04em;color:var(--text-dim);border-right:1px solid var(--border);background:var(--bg-card);transition:all .15s}
 .about-tab:last-child{border-right:none}
@@ -203,15 +202,11 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .phase-title{font-family:var(--fdisplay);font-size:13px;font-weight:600;margin-bottom:4px}
 .phase-dur{font-family:var(--fmono);font-size:10px;color:var(--blue);margin-bottom:6px}
 .phase-text{font-size:11px;color:var(--cream-dim);line-height:1.6}
-
-/* BOTTOM NAV */
 .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg-card);border-top:1px solid var(--border);z-index:200;height:var(--bnav)}
 .bnav-items{display:flex;height:100%}
 .bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--text-dim);font-family:var(--fmono);font-size:9px;gap:3px;transition:color .15s;border:none;background:none;padding:0}
 .bnav-item.active{color:var(--gold)}
 .bnav-icon{font-size:17px;line-height:1}
-
-/* RESPONSIVE */
 @media(max-width:768px){
   .sidebar{transform:translateX(-100%)}
   .sidebar.open{transform:translateX(0)}
@@ -238,8 +233,6 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
   .about-tabs{font-size:10px}
 }
 `;
-
-const USER={name:"Lea",username:"lea_citizenry",taxPaid:12400,province:"Alberta",municipality:"Edmonton"};
 
 const SECTORS={
   federal:{
@@ -276,15 +269,15 @@ const Q_P001=[
 ];
 
 const INIT_PROPOSALS=[
-  {id:"p001",title:"Universal Dental Coverage Act",sector:"federal",sectorName:"Healthcare Transfers",sectorId:"ff_health",status:"voting",author:"j_morrison_yeg",created:"2026-03-01",deadline:"2026-06-01",summary:"Extend federal healthcare transfers to cover 80% of dental costs for all Canadians earning under $90,000/year, funded through a 1.2% increase in corporate tax contributions. This ensures dental care is accessible regardless of employer benefits.",forVotes:10234,againstVotes:3891,totalEligible:18200,quorumPct:72,userVoted:null,userPassedTest:false,questions:Q_P001},
+  {id:"p001",title:"Universal Dental Coverage Act",sector:"federal",sectorName:"Healthcare Transfers",sectorId:"ff_health",status:"voting",author:"j_morrison_yeg",created:"2026-03-01",deadline:"2026-06-01",summary:"Extend federal healthcare transfers to cover 80% of dental costs for all Canadians earning under $90,000/year, funded through a 1.2% increase in corporate tax contributions.",forVotes:10234,againstVotes:3891,totalEligible:18200,quorumPct:72,userVoted:null,userPassedTest:false,questions:Q_P001},
   {id:"p002",title:"Mandatory Indigenous Language Curriculum",sector:"federal",sectorName:"Indigenous Affairs",sectorId:"ff_indg",status:"deliberation",author:"running_elk_b",created:"2026-04-15",deadline:"2026-07-15",summary:"Require all publicly funded K–12 schools to offer at least one Indigenous language course per grade level, developed in partnership with local Nations.",forVotes:0,againstVotes:0,totalEligible:0,quorumPct:0,userVoted:null,userPassedTest:false,questions:[]},
   {id:"p003",title:"Edmonton Active Transportation Network",sector:"municipal",sectorName:"Local Roads",sectorId:"mf_roads",status:"passed",author:"cycle_yyc",created:"2026-01-10",deadline:null,summary:"Allocate $45M over 3 years to expand cycling and pedestrian infrastructure in Edmonton, including 40km of new protected lanes and 12 new pedestrian crossings.",forVotes:8920,againstVotes:2103,totalEligible:14500,quorumPct:81,userVoted:"for",userPassedTest:true,questions:[]},
   {id:"p004",title:"Carbon Capture R&D Investment Fund",sector:"federal",sectorName:"Climate & Environment",sectorId:"ff_climate",status:"voting",author:"dr_priya_k",created:"2026-02-20",deadline:"2026-05-20",summary:"Establish a $2B federal fund for carbon capture research partnerships between universities and industry, with results mandated to remain open-source for 5 years.",forVotes:5402,againstVotes:7801,totalEligible:16000,quorumPct:68,userVoted:null,userPassedTest:true,questions:[]},
 ];
 
 const INIT_LEDGER=[
-  {id:"L0042",type:"VOTE",actor:"lea_citizenry",action:"Voted FOR",target:"Edmonton Active Transportation Network",sector:"Municipal · Local Roads",ts:"2026-02-14 09:32",pts:"15pts"},
-  {id:"L0041",type:"ALLOCATION",actor:"lea_citizenry",action:"Annual allocation submitted",target:"Federal · Provincial · Municipal",sector:"All Sectors",ts:"2026-02-01 14:05",pts:"—"},
+  {id:"L0042",type:"VOTE",actor:"jasperavenue",action:"Voted FOR",target:"Edmonton Active Transportation Network",sector:"Municipal · Local Roads",ts:"2026-02-14 09:32",pts:"15pts"},
+  {id:"L0041",type:"ALLOCATION",actor:"jasperavenue",action:"Annual allocation submitted",target:"Federal · Provincial · Municipal",sector:"All Sectors",ts:"2026-02-01 14:05",pts:"—"},
   {id:"L0040",type:"PROPOSAL",actor:"dr_priya_k",action:"New proposal filed",target:"Carbon Capture R&D Investment Fund",sector:"Federal · Climate & Environment",ts:"2026-02-20 11:12",pts:"—"},
   {id:"L0039",type:"VOTE",actor:"j_morrison_yeg",action:"Voted FOR",target:"Universal Dental Coverage Act",sector:"Federal · Healthcare Transfers",ts:"2026-03-15 08:44",pts:"22pts"},
   {id:"L0038",type:"PROPOSAL",actor:"j_morrison_yeg",action:"New proposal filed",target:"Universal Dental Coverage Act",sector:"Federal · Healthcare Transfers",ts:"2026-03-01 10:00",pts:"—"},
@@ -293,7 +286,24 @@ const INIT_LEDGER=[
   {id:"L0035",type:"PASSED",actor:"SYSTEM",action:"Proposal PASSED",target:"Edmonton Active Transportation Network",sector:"Municipal · Local Roads",ts:"2026-04-10 00:00",pts:"—"},
 ];
 
-export default function DDTAP(){
+export default function DDTAP({ session }){
+  const [userProfile, setUserProfile] = useState(null);
+
+  useEffect(() => {
+    if (session?.user) {
+      supabase.from("users").select("*").eq("id", session.user.id).single()
+        .then(({ data }) => { if (data) setUserProfile(data); });
+    }
+  }, [session]);
+
+  const USER = userProfile ? {
+    name: userProfile.full_name || userProfile.username,
+    username: userProfile.username,
+    taxPaid: userProfile.tax_paid,
+    province: userProfile.province,
+    municipality: userProfile.municipality,
+  } : { name:"...", username:"...", taxPaid:0, province:"", municipality:"" };
+
   const[view,setView]=useState("dashboard");
   const[govLevel,setGovLevel]=useState("federal");
   const[alloc,setAlloc]=useState(INIT_ALLOC);
@@ -377,8 +387,6 @@ export default function DDTAP(){
     return<div className={`prop-card s-${p.status}`} onClick={()=>openProp(p)}><div className="prop-head"><div className="prop-title">{p.title}</div><Badge status={p.status}/></div><div className="prop-meta"><span>{p.sector.toUpperCase()} · {p.sectorName.toUpperCase()}</span><span>by {p.author}</span>{p.deadline&&<span>Closes {p.deadline}</span>}{ua>0?<span style={{color:"var(--blue)"}}>Your weight: {ua}pts</span>:<span style={{color:"var(--red)"}}>No allocation</span>}</div><div className="prop-sum">{p.summary.length>160?p.summary.slice(0,160)+"…":p.summary}</div>{p.status!=="deliberation"&&<VBar p={p}/>}</div>;
   };
 
-  // ── ABOUT PANELS ────────────────────────────────────────────────────────────
-
   const AboutDDTAP=()=><div>
     <div className="about-hero">
       <div className="about-tag">THE CIVIC NETWORK · DDTAP</div>
@@ -393,21 +401,20 @@ export default function DDTAP(){
     <div className="about-sec">
       <div className="about-sec-title">How Tax Allocation Works</div>
       <div className="about-p">Every year at tax time, you log in and distribute your taxes. 30% goes automatically to Critical Infrastructure — national defence, hospitals, water systems, and the civic platform itself. The remaining 70% is yours to direct toward the sectors you care about most at the federal, provincial, and municipal level.</div>
-      <div className="about-p">Every percentage point you allocate to a sector gives you one participation point there. Those points are your vote weight on any proposal in that sector. Allocate 20% to Healthcare — you have 20 votes on healthcare proposals. Allocate nothing — you have no say. Skin in the game is the requirement.</div>
+      <div className="about-p">Every percentage point you allocate to a sector gives you one participation point there. Those points are your vote weight on any proposal in that sector. Allocate 20% to Healthcare — you have 20 votes on healthcare proposals. Allocate nothing — you have no say.</div>
       <div className="about-p">Corporate taxes follow citizen allocations automatically. Corporations do not vote. Their contributions are distributed across sectors proportional to how citizens collectively allocate their own taxes that year.</div>
     </div>
     <div className="about-sec">
       <div className="about-sec-title">Implementation Plan</div>
       <div className="phase-grid">
-        <div className="phase-card"><div className="phase-num">PHASE 1</div><div className="phase-title">Pilot Program</div><div className="phase-dur">1–2 years</div><div className="phase-text">A few willing MLAs and MPs agree to listen to results from citizens testing the DDTAP in their ridings. Voluntary participation, real feedback.</div></div>
-        <div className="phase-card"><div className="phase-num">PHASE 2</div><div className="phase-title">Provincial Expansion</div><div className="phase-dur">3–5 years</div><div className="phase-text">Extend the system to replace provincial government structures. Moderators elected, citizen oversight juries formed, the ledger goes live.</div></div>
-        <div className="phase-card"><div className="phase-num">PHASE 3</div><div className="phase-title">Legislative Transition</div><div className="phase-dur">5–10 years</div><div className="phase-text">A constitutional amendment or national referendum officially replaces the partisan representative model with DDTAP's direct democracy structure.</div></div>
+        <div className="phase-card"><div className="phase-num">PHASE 1</div><div className="phase-title">Pilot Program</div><div className="phase-dur">1–2 years</div><div className="phase-text">A few willing MLAs and MPs agree to listen to results from citizens testing the DDTAP in their ridings.</div></div>
+        <div className="phase-card"><div className="phase-num">PHASE 2</div><div className="phase-title">Provincial Expansion</div><div className="phase-dur">3–5 years</div><div className="phase-text">Extend the system to replace provincial government structures. Moderators elected, citizen oversight juries formed.</div></div>
+        <div className="phase-card"><div className="phase-num">PHASE 3</div><div className="phase-title">Legislative Transition</div><div className="phase-dur">5–10 years</div><div className="phase-text">A constitutional amendment or national referendum officially replaces the partisan representative model with DDTAP.</div></div>
       </div>
     </div>
     <div className="info-box">All numbers in this platform are fabricated for demonstration purposes. The actual percentages, quorum thresholds, and sector breakdowns would be decided by a vote of every Canadian citizen before the system goes live.</div>
-    <a href="https://docs.google.com/document/d/1zIXFUa1ykOP8Cs8Sd7P3D8dUzFOOurWJPVlLG3bMBIo/edit?usp=sharing" target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:8,marginTop:8,padding:"14px 18px",background:"rgba(200,168,75,.06)",border:"1px solid rgba(200,168,75,.2)",borderRadius:3,fontFamily:"var(--fmono)",fontSize:12,color:"var(--gold)",textDecoration:"none",transition:"background .15s"}}>
-      <span style={{fontSize:16}}>📄</span>
-      Click here to read a more detailed description of what this looks like →
+    <a href="https://docs.google.com/document/d/1zIXFUa1ykOP8Cs8Sd7P3D8dUzFOOurWJPVlLG3bMBIo/edit?usp=sharing" target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:8,marginTop:8,padding:"14px 18px",background:"rgba(200,168,75,.06)",border:"1px solid rgba(200,168,75,.2)",borderRadius:3,fontFamily:"var(--fmono)",fontSize:12,color:"var(--gold)",textDecoration:"none"}}>
+      <span style={{fontSize:16}}>📄</span>Click here to read a more detailed description of what this looks like →
     </a>
   </div>;
 
@@ -420,7 +427,7 @@ export default function DDTAP(){
     <div className="about-sec">
       <div className="about-sec-title">The Mission</div>
       <div className="about-p">Buy local first. If you can't buy locally, try to grow at home. If you can't grow at home, rent a community garden plot. Victory Gardens meets people at whatever level they can engage with the system.</div>
-      <div className="about-p">The original Victory Gardens were a World War necessity — over 800,000 Canadians grew food on any land they could farm during WWI and WWII. Climate change is reshaping what can be grown and food insecurity in Canada is growing. Victory Gardens encourages communities to grow food and govern themselves.</div>
+      <div className="about-p">The original Victory Gardens were a World War necessity — over 800,000 Canadians grew food on any land they could farm during WWI and WWII. Climate change is reshaping what can be grown and food insecurity in Canada is growing.</div>
     </div>
     <div className="about-sec">
       <div className="about-sec-title">Services</div>
@@ -428,18 +435,17 @@ export default function DDTAP(){
         {icon:"🥦",name:"Grocery Box Service",text:"Members pay a monthly fee and choose from a catalogue of locally grown produce. Yields are tracked transparently — anything above the expected yield is distributed by community vote."},
         {icon:"🌱",name:"Volunteer Garden System",text:"Two paths: volunteer a plot on your front lawn maintained by VG volunteers, or volunteer your time to maintain gardens. Both earn you weekly grocery boxes."},
         {icon:"🌳",name:"Community Centre Garden",text:"The central hub. Freed up for things needing more space and specialized knowledge — fruit trees, long-timeline crops, storage, processing, and education."},
-        {icon:"🍲",name:"Meals on Demand",text:"For community members who face barriers to preparing their own meals. Made from seasonal Victory Garden yields. Members contribute through subscription, land, or time."},
+        {icon:"🍲",name:"Meals on Demand",text:"For community members who face barriers to preparing their own meals. Made from seasonal Victory Garden yields."},
         {icon:"🌿",name:"Landscaping Services",text:"Helping turn lawns into thriving permaculture food gardens, growing the network's production capacity one yard at a time."},
-        {icon:"❄️",name:"Snow Removal",text:"Neighbourhood kids are paid to clear snow for residents with mobility issues while learning to manage a small business. Modelled after Cloverdale Community League's existing program."},
+        {icon:"❄️",name:"Snow Removal",text:"Neighbourhood kids are paid to clear snow for residents with mobility issues while learning to manage a small business."},
       ].map(s=><div key={s.name} className="svc-item"><div className="svc-icon">{s.icon}</div><div><div className="svc-name">{s.name}</div><div className="svc-text">{s.text}</div></div></div>)}
     </div>
     <div className="about-sec">
       <div className="about-sec-title">Governance</div>
-      <div className="about-p">Members don't just receive produce — they govern the program and decide its growth. Using the DDTAP model, members vote on how the Victory Gardens Network in their community should operate and expand. Only residents who participate get to decide. People with no stake in the community can't join and disrupt it without first contributing to it.</div>
+      <div className="about-p">Members don't just receive produce — they govern the program and decide its growth. Using the DDTAP model, members vote on how the Victory Gardens Network in their community should operate and expand. Only residents who participate get to decide.</div>
     </div>
     <a href="https://docs.google.com/document/d/1r7U6ENUMY8uzv7QbXcjP_MqKDxhWuh65K1gzVztbMIw/edit?usp=sharing" target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:8,padding:"14px 18px",background:"rgba(200,168,75,.06)",border:"1px solid rgba(200,168,75,.2)",borderRadius:3,fontFamily:"var(--fmono)",fontSize:12,color:"var(--gold)",textDecoration:"none"}}>
-      <span style={{fontSize:16}}>📄</span>
-      Click here to read a more detailed description of what this looks like →
+      <span style={{fontSize:16}}>📄</span>Click here to read a more detailed description of what this looks like →
     </a>
   </div>;
 
@@ -465,9 +471,9 @@ export default function DDTAP(){
       {[
         {num:"Episode 1",title:"Buy Canadian",text:"The Magpie tries to buy Canadian products and discovers it's much more complicated than it needs to be. The solution: buy from local farmer's markets or grow your own food. This leads the Magpie to discover Victory Gardens."},
         {num:"Episode 2",title:"Canadian Media",text:"The Magpie helps launch a Meals on Demand service and calls a local news organization. The interview is clipped to make the Magpie look like an idiot. The Magpie discovers a large portion of Canadian media and oil and gas corporations are owned by the same investment firms."},
-        {num:"Episode 3",title:"'Not I,' Said the Duck",text:"The Magpie tries to get government to address unmet community needs. The province says it's municipal. The Mayor confirms it's municipal but the province controls the funding and wants a surplus. The Magpie returns to Victory Gardens and the host explains the petition process — then promptly gets started on one."},
-        {num:"Episode 4",title:"Two Birds Stoned at Once",text:"The Magpie decides to fix the system from inside. He learns how First Past the Post works, how party boards control candidates, and how bills get rushed through. Defeated, he returns to VG and realizes the Victory Garden Network already does what he was trying to build."},
-        {num:"Episode 5",title:"We Can Do This. We Can Build It.",text:"The Magpie presents their idea to expand the Victory Garden Network using the DDTAP model. Every member they speak with has read the proposal, passed the comprehension test, left comments, and voted. The season ends on making your very existence an act of rebellion."},
+        {num:"Episode 3",title:"'Not I,' Said the Duck",text:"The Magpie tries to get government to address unmet community needs. The province says it's municipal. The Mayor confirms it's municipal but the province controls the funding. The Magpie returns to Victory Gardens and the host explains the petition process."},
+        {num:"Episode 4",title:"Two Birds Stoned at Once",text:"The Magpie decides to fix the system from inside. He learns how First Past the Post works and how bills get rushed through. Defeated, he returns to VG and realizes the Victory Garden Network already does what he was trying to build."},
+        {num:"Episode 5",title:"We Can Do This. We Can Build It.",text:"The Magpie presents their idea to expand the Victory Garden Network using the DDTAP model. Every member they speak with has read the proposal, passed the comprehension test, left comments, and voted."},
       ].map(ep=><div key={ep.num} className="about-ep"><div className="about-ep-num">{ep.num.toUpperCase()}</div><div className="about-ep-title">{ep.title}</div><div className="about-ep-text">{ep.text}</div></div>)}
     </div>
     <div className="about-sec">
@@ -480,12 +486,9 @@ export default function DDTAP(){
       <div style={{marginTop:14,fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)"}}>Featured foods this season: Beef · Taber Corn · Tomatoes · Saskatoon Berries · Potatoes · Bison</div>
     </div>
     <a href="https://docs.google.com/document/d/1inE6Eh1vSrOJZPwOnqB5q_Cavck1Blw1xsyZOpZ_ioo/edit?usp=sharing" target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:8,marginTop:8,padding:"14px 18px",background:"rgba(200,168,75,.06)",border:"1px solid rgba(200,168,75,.2)",borderRadius:3,fontFamily:"var(--fmono)",fontSize:12,color:"var(--gold)",textDecoration:"none"}}>
-      <span style={{fontSize:16}}>📄</span>
-      Click here to read a more detailed description of what this looks like →
+      <span style={{fontSize:16}}>📄</span>Click here to read a more detailed description of what this looks like →
     </a>
   </div>;
-
-  // ── VIEWS ────────────────────────────────────────────────────────────────────
 
   const Dashboard=()=>{
     const av=proposals.filter(p=>p.status==="voting").length,voted=proposals.filter(p=>p.userVoted).length;
@@ -544,7 +547,6 @@ export default function DDTAP(){
         {ua>0?<span style={{color:"var(--blue)"}}>Your weight: {ua}pts</span>:<span style={{color:"var(--red)"}}>⚠ No allocation — cannot vote</span>}
       </div>
       <div className="dtabs">{tabs.map(t=><div key={t} className={`dtab ${dtab===t?"active":""}`} onClick={()=>setDtab(t)}>{t==="overview"?"Overview":t==="test"?"Comprehension Test":"Vote"}{t==="test"&&!p.userPassedTest&&<span style={{color:"var(--gold)",marginLeft:4}}>Required</span>}{t==="vote"&&p.userVoted&&<span style={{color:"var(--green)",marginLeft:4}}>✓</span>}</div>)}</div>
-
       {dtab==="overview"&&<div className="two-col">
         <div>
           <div className="card" style={{marginBottom:12}}><div className="ctitle">Proposal Summary</div><p style={{fontSize:13,lineHeight:1.8,color:"var(--cream-dim)"}}>{p.summary}</p></div>
@@ -555,9 +557,7 @@ export default function DDTAP(){
           <div className="card"><div className="ctitle">Your Participation</div><div style={{fontSize:12,lineHeight:2.2,fontFamily:"var(--fmono)",color:"var(--cream-dim)"}}><div>Sector allocation: <span style={{color:ua>0?"var(--gold)":"var(--red)"}}>{ua}pts</span></div><div>Comprehension test: <span style={{color:p.userPassedTest?"var(--green)":"var(--text-dim)"}}>{p.userPassedTest?"Passed ✓":"Not taken"}</span></div><div>Vote cast: <span style={{color:p.userVoted?"var(--green)":"var(--text-dim)"}}>{p.userVoted?p.userVoted.toUpperCase()+" ✓":"None"}</span></div></div>{p.status==="voting"&&!p.userPassedTest&&hasQ&&ua>0&&<button className="save-btn" style={{marginTop:14}} onClick={()=>setDtab("test")}>Take Test →</button>}{canVote&&<button className="save-btn" style={{marginTop:14}} onClick={()=>setDtab("vote")}>Cast Your Vote →</button>}</div>
         </div>
       </div>}
-
       {dtab==="test"&&<div className="card">{testDone?<><div className="score-disp"><div className={`score-num ${testScore>=5?"score-pass":"score-fail"}`}>{testScore}/10</div><div className="score-lbl" style={{color:testScore>=5?"var(--green)":"var(--red)"}}>{testScore>=5?"✅ PASSED — You may now vote":"❌ FAILED — Minimum 5/10 required"}</div>{testScore>=5?<button className="save-btn" style={{marginTop:22}} onClick={()=>setDtab("vote")}>Proceed to Vote →</button>:<button className="btn-g" style={{marginTop:22}} onClick={()=>{setTestAns({});setTestDone(false);setTestScore(null);}}>Retake Test</button>}</div><div style={{marginTop:22}}>{p.questions.map((q,i)=><div key={i} className="qblock"><div className="qnum">Q{i+1}</div><div className="qtext">{q.q}</div><div className="opts">{q.opts.map((opt,j)=>{const isSel=testAns[i]===j,isCorr=j===q.a;const cls=isSel&&isCorr?"corr":isSel?"incorr":isCorr?"corr":"";return<div key={j} className={`opt-btn ${cls}`}>{opt}</div>;})}</div></div>)}</div></>:<><div className="ctitle">Reading & Comprehension Test</div><p style={{fontSize:12,color:"var(--cream-dim)",marginBottom:22,lineHeight:1.7}}>Answer at least <strong style={{color:"var(--gold)"}}>5 of 10</strong> correctly to unlock voting.</p>{p.questions.map((q,i)=><div key={i} className="qblock"><div className="qnum">QUESTION {i+1} OF {p.questions.length}</div><div className="qtext">{q.q}</div><div className="opts">{q.opts.map((opt,j)=><button key={j} className={`opt-btn ${testAns[i]===j?"sel":""}`} onClick={()=>setTestAns(prev=>({...prev,[i]:j}))}>{opt}</button>)}</div></div>)}<button className="save-btn" style={{opacity:Object.keys(testAns).length<p.questions.length?.5:1}} onClick={()=>submitTest(p)}>Submit Test ({Object.keys(testAns).length}/{p.questions.length} answered)</button></>}</div>}
-
       {dtab==="vote"&&<div className="card"><div className="ctitle">Cast Your Vote</div>{(!canVote&&!p.userVoted)?<div style={{padding:28,textAlign:"center",fontFamily:"var(--fmono)",fontSize:12}}>{ua===0?<span style={{color:"var(--red)"}}>No allocation in {p.sectorName}. Go to Tax Allocation first.</span>:!p.userPassedTest?<span style={{color:"var(--gold)"}}>Pass the comprehension test before voting. <button className="btn-g" style={{marginLeft:8}} onClick={()=>setDtab("test")}>Take Test</button></span>:<span>This proposal is not in the voting phase.</span>}</div>:<><p style={{fontSize:13,lineHeight:1.75,color:"var(--cream-dim)",marginBottom:16}}>{p.summary}</p><div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)",padding:"9px 12px",background:"rgba(0,0,0,.3)",borderRadius:2,marginBottom:18}}>Your vote carries <span style={{color:"var(--gold)"}}>{ua} participation points</span> in {p.sectorName}</div><div className="vote-acts"><button className={`vote-btn vbf ${p.userVoted==="for"?"vactive":""}`} onClick={()=>castVote(p.id,"for")}>▲ VOTE FOR{p.userVoted==="for"&&" (Active)"}</button><button className={`vote-btn vba ${p.userVoted==="against"?"vactive":""}`} onClick={()=>castVote(p.id,"against")}>▼ VOTE AGAINST{p.userVoted==="against"&&" (Active)"}</button></div>{p.userVoted&&<p style={{marginTop:10,fontFamily:"var(--fmono)",fontSize:10,color:"var(--green)"}}>✓ Vote recorded. Click again to change or retract.</p>}</>}</div>}
     </div>;
   };
@@ -572,7 +572,7 @@ export default function DDTAP(){
     const voted=proposals.filter(p=>p.userVoted).length;
     const myProps=proposals.filter(p=>p.author===USER.username);
     return<div className="content">
-      <div style={{display:"flex",gap:20,alignItems:"flex-start",marginBottom:28}}><div className="profile-av">{USER.name.charAt(0)}</div><div><div className="profile-name">{USER.name}</div><div className="profile-user">@{USER.username}</div><div className="profile-bio">Citizen · {USER.municipality}, {USER.province} · DDTAP Pilot · Since Jan 2026</div></div></div>
+      <div style={{display:"flex",gap:20,alignItems:"flex-start",marginBottom:28}}><div className="profile-av">{USER.name.charAt(0)}</div><div><div className="profile-name">{USER.name}</div><div className="profile-user">@{USER.username}</div><div className="profile-bio">Citizen · {USER.municipality}, {USER.province} · DDTAP Pilot</div></div></div>
       <div className="two-col" style={{marginBottom:14}}><div className="stat-card"><div className="stat-val">${USER.taxPaid.toLocaleString()}</div><div className="stat-lbl">2026 TAX CONTRIBUTION</div></div><div className="stat-card"><div className="stat-val">{voted}</div><div className="stat-lbl">PROPOSALS VOTED</div></div></div>
       <div className="card" style={{marginBottom:14}}><div className="ctitle">Participation Points by Sector</div><div className="part-grid">{["federal","provincial","municipal"].map(lvl=><div key={lvl} className="part-card"><div className="part-lvl">{lvl.toUpperCase()}</div>{SECTORS[lvl].critical.slice(0,2).map(s=><div key={s.id} className="part-row"><span className="part-nm">{s.name}</span><span className="part-pts">{s.pct}pts</span></div>)}{SECTORS[lvl].flexible.filter(s=>savedAlloc[lvl][s.id]>0).map(s=><div key={s.id} className="part-row"><span className="part-nm" style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:6,height:6,borderRadius:"50%",background:s.color,display:"inline-block",flexShrink:0}}/>{s.name.length>17?s.name.slice(0,17)+"…":s.name}</span><span className="part-pts">{savedAlloc[lvl][s.id]}pts</span></div>)}</div>)}</div></div>
       {myProps.length>0&&<div className="card"><div className="ctitle">My Proposals</div><div className="prop-list">{myProps.map(p=><PCard key={p.id} p={p}/>)}</div></div>}
@@ -590,8 +590,6 @@ export default function DDTAP(){
     {aboutTab==="jasper"&&<AboutJasper/>}
   </div>;
 
-  // ── LAYOUT ───────────────────────────────────────────────────────────────────
-
   const navItems=[
     {id:"dashboard",icon:"⬡",label:"Dashboard"},
     {id:"allocate",icon:"◈",label:"Tax Allocation"},
@@ -604,6 +602,8 @@ export default function DDTAP(){
   const vl={dashboard:"Dashboard",allocate:"Tax Allocation",proposals:"Proposals",proposal:"Proposal Detail",ledger:"Civic Ledger",profile:"My Profile",about:"About"};
   const isActive=(id)=>view===id||(id==="proposals"&&view==="proposal");
 
+  const handleLogout=async()=>{ await supabase.auth.signOut(); };
+
   return<>
     <style>{CSS}</style>
     <div className="app">
@@ -611,7 +611,13 @@ export default function DDTAP(){
       <aside className={`sidebar ${sidebarOpen?"open":""}`}>
         <div className="sb-logo"><h1>The Civic Network</h1><span>DDTAP · PILOT v0.1</span></div>
         <nav className="sb-nav">{navItems.map(n=><div key={n.id} className={`nav-item ${isActive(n.id)?"active":""}`} onClick={()=>navTo(n.id)}><span style={{fontSize:15,lineHeight:1}}>{n.icon}</span>{n.label}</div>)}</nav>
-        <div className="sb-user"><div className="sb-user-name">{USER.name}</div><div className="sb-user-sub">@{USER.username}</div><div className="sb-user-sub" style={{marginTop:4,color:"var(--green)"}}>● Active Citizen</div><div className="sb-user-sub" style={{marginTop:2}}>{USER.municipality}, {USER.province}</div></div>
+        <div className="sb-user">
+          <div className="sb-user-name">{USER.name}</div>
+          <div className="sb-user-sub">@{USER.username}</div>
+          <div className="sb-user-sub" style={{marginTop:4,color:"var(--green)"}}>● Active Citizen</div>
+          <div className="sb-user-sub" style={{marginTop:2}}>{USER.municipality}, {USER.province}</div>
+          <div onClick={handleLogout} style={{marginTop:12,fontFamily:"var(--fmono)",fontSize:10,color:"var(--red)",cursor:"pointer"}}>Log out</div>
+        </div>
       </aside>
       <main className="main">
         <div className="topbar">
