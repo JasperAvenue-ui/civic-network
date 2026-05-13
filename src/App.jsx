@@ -405,6 +405,10 @@ export default function DDTAP(){
       </div>
     </div>
     <div className="info-box">All numbers in this platform are fabricated for demonstration purposes. The actual percentages, quorum thresholds, and sector breakdowns would be decided by a vote of every Canadian citizen before the system goes live.</div>
+    <a href="https://docs.google.com/document/d/1zIXFUa1ykOP8Cs8Sd7P3D8dUzFOOurWJPVlLG3bMBIo/edit?usp=sharing" target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:8,marginTop:8,padding:"14px 18px",background:"rgba(200,168,75,.06)",border:"1px solid rgba(200,168,75,.2)",borderRadius:3,fontFamily:"var(--fmono)",fontSize:12,color:"var(--gold)",textDecoration:"none",transition:"background .15s"}}>
+      <span style={{fontSize:16}}>📄</span>
+      Click here to read a more detailed description of what this looks like →
+    </a>
   </div>;
 
   const AboutVG=()=><div>
@@ -433,6 +437,10 @@ export default function DDTAP(){
       <div className="about-sec-title">Governance</div>
       <div className="about-p">Members don't just receive produce — they govern the program and decide its growth. Using the DDTAP model, members vote on how the Victory Gardens Network in their community should operate and expand. Only residents who participate get to decide. People with no stake in the community can't join and disrupt it without first contributing to it.</div>
     </div>
+    <a href="https://docs.google.com/document/d/1r7U6ENUMY8uzv7QbXcjP_MqKDxhWuh65K1gzVztbMIw/edit?usp=sharing" target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:8,padding:"14px 18px",background:"rgba(200,168,75,.06)",border:"1px solid rgba(200,168,75,.2)",borderRadius:3,fontFamily:"var(--fmono)",fontSize:12,color:"var(--gold)",textDecoration:"none"}}>
+      <span style={{fontSize:16}}>📄</span>
+      Click here to read a more detailed description of what this looks like →
+    </a>
   </div>;
 
   const AboutJasper=()=><div>
@@ -471,6 +479,10 @@ export default function DDTAP(){
       ].map(s=><div key={s.name} className="svc-item"><div><div className="svc-name">{s.name} <span style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--blue)",marginLeft:8}}>{s.dur}</span></div><div className="svc-text">{s.text}</div></div></div>)}
       <div style={{marginTop:14,fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)"}}>Featured foods this season: Beef · Taber Corn · Tomatoes · Saskatoon Berries · Potatoes · Bison</div>
     </div>
+    <a href="https://docs.google.com/document/d/1inE6Eh1vSrOJZPwOnqB5q_Cavck1Blw1xsyZOpZ_ioo/edit?usp=sharing" target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:8,marginTop:8,padding:"14px 18px",background:"rgba(200,168,75,.06)",border:"1px solid rgba(200,168,75,.2)",borderRadius:3,fontFamily:"var(--fmono)",fontSize:12,color:"var(--gold)",textDecoration:"none"}}>
+      <span style={{fontSize:16}}>📄</span>
+      Click here to read a more detailed description of what this looks like →
+    </a>
   </div>;
 
   // ── VIEWS ────────────────────────────────────────────────────────────────────
