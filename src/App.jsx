@@ -284,61 +284,8 @@ const INIT_ALLOC={
   municipal:{mf_roads:15,mf_parks:20,mf_libs:15,mf_comm:10,mf_plan:10,mf_bylaw:0},
 };
 
-const Q_P003=[
-  {q:"How much total funding does this proposal allocate?",opts:["$15M","$30M","$45M","$60M"],a:2},
-  {q:"Over how many years would this funding be spent?",opts:["1 year","2 years","3 years","5 years"],a:2},
-  {q:"How many kilometres of new protected lanes are planned?",opts:["20km","30km","40km","50km"],a:2},
-  {q:"How many new pedestrian crossings are included?",opts:["6","8","10","12"],a:3},
-  {q:"Which city does this proposal affect?",opts:["Calgary","Red Deer","Edmonton","Lethbridge"],a:2},
-  {q:"Which municipal sector does this proposal fall under?",opts:["Parks & Recreation","Community Programs","Planning & Zoning","Local Roads"],a:3},
-  {q:"What type of infrastructure is being expanded?",opts:["Roads and highways","Cycling and pedestrian","Public transit","Water systems"],a:1},
-  {q:"What is the approximate annual funding amount?",opts:["$10M","$15M","$20M","$25M"],a:1},
-  {q:"What is the primary goal of this proposal?",opts:["Build new highways","Expand cycling and pedestrian infrastructure","Add more parking","Improve bus routes"],a:1},
-  {q:"Who can vote on this proposal?",opts:["All Edmonton residents","Citizens with allocation in Local Roads","Anyone with a DDTAP account","Municipal moderators only"],a:1},
-];
-
-const Q_P004=[
-  {q:"How large is the proposed federal fund?",opts:["$500M","$1B","$2B","$5B"],a:2},
-  {q:"Who are the intended research partners?",opts:["Government agencies only","Private corporations only","Universities and industry","International organizations"],a:2},
-  {q:"How long must results remain open-source after discovery?",opts:["1 year","3 years","5 years","10 years"],a:2},
-  {q:"Which federal sector does this proposal affect?",opts:["Digital Innovation","Infrastructure","Indigenous Affairs","Climate & Environment"],a:3},
-  {q:"What technology does this fund focus on?",opts:["Solar energy","Wind power","Carbon capture","Nuclear fusion"],a:2},
-  {q:"What is the open-source requirement tied to?",opts:["Project start date","Publication date","5 years post-discovery","Fund disbursement"],a:2},
-  {q:"What level of government is responsible for this fund?",opts:["Municipal","Provincial","Federal","International"],a:2},
-  {q:"What must remain open-source under this proposal?",opts:["The fund allocation process","Research results and discoveries","Partnership agreements","University curricula"],a:1},
-  {q:"What is the total fund size?",opts:["$1B","$2B","$3B","$4B"],a:1},
-  {q:"Who can vote on this proposal?",opts:["All Canadians","Citizens allocated to Climate & Environment","Anyone with a DDTAP account","Federal scientists only"],a:1},
-];
-
-const Q_P001=[
-  {q:"What income threshold qualifies for coverage?",opts:["$70,000","$90,000","$110,000","$80,000"],a:1},
-  {q:"What percentage of dental costs would be covered?",opts:["60%","75%","80%","90%"],a:2},
-  {q:"How is this proposal funded?",opts:["Income tax increase","GST increase","Corporate tax increase","Bond issuance"],a:2},
-  {q:"Which federal sector does this affect?",opts:["Digital Innovation","Indigenous Affairs","Healthcare Transfers","Infrastructure"],a:2},
-  {q:"What is the proposed corporate tax rate increase?",opts:["0.5%","1.2%","2.0%","1.8%"],a:1},
-  {q:"Does this proposal cover 100% of dental costs?",opts:["Yes","No"],a:1},
-  {q:"Who may vote on this proposal?",opts:["All Canadians","Citizens allocated to Healthcare Transfers","Anyone with a DDTAP account","Federal moderators only"],a:1},
-  {q:"What proposal type is this?",opts:["Emergency","Standard","Constitutional","Advisory"],a:1},
-  {q:"What vote majority is required to pass?",opts:["40%","More than 50%","60%","75%"],a:1},
-  {q:"What quorum percentage is required?",opts:["40%","50%","60%","75%"],a:2},
-];
-
-const INIT_PROPOSALS=[
-  {id:"p001",title:"Universal Dental Coverage Act",sector:"federal",sectorName:"Healthcare Transfers",sectorId:"ff_health",status:"voting",author:"j_morrison_yeg",created:"2026-03-01",deadline:"2026-06-01",summary:"Extend federal healthcare transfers to cover 80% of dental costs for all Canadians earning under $90,000/year, funded through a 1.2% increase in corporate tax contributions.",forVotes:10234,againstVotes:3891,totalEligible:18200,quorumPct:72,userVoted:null,userPassedTest:false,questions:Q_P001},
-  {id:"p003",title:"Edmonton Active Transportation Network",sector:"municipal",sectorName:"Local Roads",sectorId:"mf_roads",status:"passed",author:"cycle_yyc",created:"2026-01-10",deadline:null,summary:"Allocate $45M over 3 years to expand cycling and pedestrian infrastructure in Edmonton, including 40km of new protected lanes and 12 new pedestrian crossings.",forVotes:8920,againstVotes:2103,totalEligible:14500,quorumPct:81,userVoted:"for",userPassedTest:true,questions:Q_P003},
-  {id:"p004",title:"Carbon Capture R&D Investment Fund",sector:"federal",sectorName:"Climate & Environment",sectorId:"ff_climate",status:"voting",author:"dr_priya_k",created:"2026-02-20",deadline:"2026-05-20",summary:"Establish a $2B federal fund for carbon capture research partnerships between universities and industry, with results mandated to remain open-source for 5 years.",forVotes:5402,againstVotes:7801,totalEligible:16000,quorumPct:68,userVoted:null,userPassedTest:true,questions:Q_P004},
-];
-
-const INIT_LEDGER=[
-  {id:"L0042",type:"VOTE",actor:"jasperavenue",action:"Voted FOR",target:"Edmonton Active Transportation Network",sector:"Municipal · Local Roads",ts:"2026-02-14 09:32",pts:"15pts"},
-  {id:"L0041",type:"ALLOCATION",actor:"jasperavenue",action:"Annual allocation submitted",target:"Federal · Provincial · Municipal",sector:"All Sectors",ts:"2026-02-01 14:05",pts:"—"},
-  {id:"L0040",type:"PROPOSAL",actor:"dr_priya_k",action:"New proposal filed",target:"Carbon Capture R&D Investment Fund",sector:"Federal · Climate & Environment",ts:"2026-02-20 11:12",pts:"—"},
-  {id:"L0039",type:"VOTE",actor:"j_morrison_yeg",action:"Voted FOR",target:"Universal Dental Coverage Act",sector:"Federal · Healthcare Transfers",ts:"2026-03-15 08:44",pts:"22pts"},
-  {id:"L0038",type:"PROPOSAL",actor:"j_morrison_yeg",action:"New proposal filed",target:"Universal Dental Coverage Act",sector:"Federal · Healthcare Transfers",ts:"2026-03-01 10:00",pts:"—"},
-  {id:"L0037",type:"MODERATION",actor:"mod_fed_health_02",action:"Comprehension test approved",target:"Universal Dental Coverage Act",sector:"Federal · Healthcare Transfers",ts:"2026-03-03 14:20",pts:"—"},
-  {id:"L0036",type:"VOTE",actor:"running_elk_b",action:"Voted AGAINST",target:"Carbon Capture R&D Investment Fund",sector:"Federal · Climate & Environment",ts:"2026-04-01 16:00",pts:"8pts"},
-  {id:"L0035",type:"PASSED",actor:"SYSTEM",action:"Proposal PASSED",target:"Edmonton Active Transportation Network",sector:"Municipal · Local Roads",ts:"2026-04-10 00:00",pts:"—"},
-];
+const INIT_PROPOSALS=[];
+const INIT_LEDGER=[];
 
 export default function DDTAP({ session, onLogout }){
   const [userProfile, setUserProfile] = useState(null);
