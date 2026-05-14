@@ -202,6 +202,27 @@ input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:15px;heigh
 .phase-title{font-family:var(--fdisplay);font-size:13px;font-weight:600;margin-bottom:4px}
 .phase-dur{font-family:var(--fmono);font-size:10px;color:var(--blue);margin-bottom:6px}
 .phase-text{font-size:11px;color:var(--cream-dim);line-height:1.6}
+.reply-btn{background:none;border:none;font-family:var(--fmono);font-size:10px;color:var(--text-dim);cursor:pointer;padding:4px 0;transition:color .15s}
+.reply-btn:hover{color:var(--blue)}
+.comment-box{padding:12px 14px;background:rgba(0,0,0,.2);border-radius:3px;border-left:2px solid var(--border)}
+.comment-box:hover{border-left-color:var(--border-light)}
+.comment-header{font-family:var(--fmono);font-size:10px;color:var(--text-dim);margin-bottom:6px;display:flex;gap:12px;align-items:center}
+.comment-text{font-size:13px;color:var(--cream-dim);line-height:1.7;margin-bottom:6px}
+.comment-children{margin-left:16px;margin-top:8px;padding-left:12px;border-left:1px solid var(--border)}
+.sector-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+.sector-card{background:var(--bg-card);border:1px solid var(--border);border-radius:3px;padding:18px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.sector-card:hover{border-color:var(--border-light);background:var(--bg-hover)}
+.sector-card.has-alloc{border-color:rgba(200,168,75,.3);background:rgba(200,168,75,.04)}
+.sector-card.has-alloc:hover{border-color:var(--gold);background:rgba(200,168,75,.08)}
+.sector-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px}
+.sector-card-name{font-family:var(--fdisplay);font-size:14px;font-weight:600;margin-bottom:6px;margin-top:8px}
+.sector-card-meta{font-family:var(--fmono);font-size:10px;color:var(--text-dim);display:flex;gap:10px;flex-wrap:wrap}
+.sector-card-alloc{font-family:var(--fmono);font-size:11px;color:var(--gold);margin-top:8px}
+.sector-level-title{font-family:var(--fdisplay);font-size:16px;font-weight:700;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.past-toggle{display:flex;align-items:center;gap:8px;padding:12px 16px;background:var(--bg-card);border:1px solid var(--border);border-radius:3px;cursor:pointer;font-family:var(--fmono);font-size:11px;color:var(--text-dim);margin-top:22px;transition:all .15s}
+.past-toggle:hover{color:var(--cream);border-color:var(--border-light)}
+@media(max-width:768px){.sector-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:420px){.sector-grid{grid-template-columns:1fr}}
 .bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--bg-card);border-top:1px solid var(--border);z-index:200;height:var(--bnav)}
 .bnav-items{display:flex;height:100%}
 .bnav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;color:var(--text-dim);font-family:var(--fmono);font-size:9px;gap:3px;transition:color .15s;border:none;background:none;padding:0}
@@ -255,6 +276,32 @@ const INIT_ALLOC={
   municipal:{mf_roads:15,mf_parks:20,mf_libs:15,mf_comm:10,mf_plan:10,mf_bylaw:0},
 };
 
+const Q_P003=[
+  {q:"How much total funding does this proposal allocate?",opts:["$15M","$30M","$45M","$60M"],a:2},
+  {q:"Over how many years would this funding be spent?",opts:["1 year","2 years","3 years","5 years"],a:2},
+  {q:"How many kilometres of new protected lanes are planned?",opts:["20km","30km","40km","50km"],a:2},
+  {q:"How many new pedestrian crossings are included?",opts:["6","8","10","12"],a:3},
+  {q:"Which city does this proposal affect?",opts:["Calgary","Red Deer","Edmonton","Lethbridge"],a:2},
+  {q:"Which municipal sector does this proposal fall under?",opts:["Parks & Recreation","Community Programs","Planning & Zoning","Local Roads"],a:3},
+  {q:"What type of infrastructure is being expanded?",opts:["Roads and highways","Cycling and pedestrian","Public transit","Water systems"],a:1},
+  {q:"What is the approximate annual funding amount?",opts:["$10M","$15M","$20M","$25M"],a:1},
+  {q:"What is the primary goal of this proposal?",opts:["Build new highways","Expand cycling and pedestrian infrastructure","Add more parking","Improve bus routes"],a:1},
+  {q:"Who can vote on this proposal?",opts:["All Edmonton residents","Citizens with allocation in Local Roads","Anyone with a DDTAP account","Municipal moderators only"],a:1},
+];
+
+const Q_P004=[
+  {q:"How large is the proposed federal fund?",opts:["$500M","$1B","$2B","$5B"],a:2},
+  {q:"Who are the intended research partners?",opts:["Government agencies only","Private corporations only","Universities and industry","International organizations"],a:2},
+  {q:"How long must results remain open-source after discovery?",opts:["1 year","3 years","5 years","10 years"],a:2},
+  {q:"Which federal sector does this proposal affect?",opts:["Digital Innovation","Infrastructure","Indigenous Affairs","Climate & Environment"],a:3},
+  {q:"What technology does this fund focus on?",opts:["Solar energy","Wind power","Carbon capture","Nuclear fusion"],a:2},
+  {q:"What is the open-source requirement tied to?",opts:["Project start date","Publication date","5 years post-discovery","Fund disbursement"],a:2},
+  {q:"What level of government is responsible for this fund?",opts:["Municipal","Provincial","Federal","International"],a:2},
+  {q:"What must remain open-source under this proposal?",opts:["The fund allocation process","Research results and discoveries","Partnership agreements","University curricula"],a:1},
+  {q:"What is the total fund size?",opts:["$1B","$2B","$3B","$4B"],a:1},
+  {q:"Who can vote on this proposal?",opts:["All Canadians","Citizens allocated to Climate & Environment","Anyone with a DDTAP account","Federal scientists only"],a:1},
+];
+
 const Q_P001=[
   {q:"What income threshold qualifies for coverage?",opts:["$70,000","$90,000","$110,000","$80,000"],a:1},
   {q:"What percentage of dental costs would be covered?",opts:["60%","75%","80%","90%"],a:2},
@@ -270,9 +317,8 @@ const Q_P001=[
 
 const INIT_PROPOSALS=[
   {id:"p001",title:"Universal Dental Coverage Act",sector:"federal",sectorName:"Healthcare Transfers",sectorId:"ff_health",status:"voting",author:"j_morrison_yeg",created:"2026-03-01",deadline:"2026-06-01",summary:"Extend federal healthcare transfers to cover 80% of dental costs for all Canadians earning under $90,000/year, funded through a 1.2% increase in corporate tax contributions.",forVotes:10234,againstVotes:3891,totalEligible:18200,quorumPct:72,userVoted:null,userPassedTest:false,questions:Q_P001},
-  {id:"p002",title:"Mandatory Indigenous Language Curriculum",sector:"federal",sectorName:"Indigenous Affairs",sectorId:"ff_indg",status:"deliberation",author:"running_elk_b",created:"2026-04-15",deadline:"2026-07-15",summary:"Require all publicly funded K–12 schools to offer at least one Indigenous language course per grade level, developed in partnership with local Nations.",forVotes:0,againstVotes:0,totalEligible:0,quorumPct:0,userVoted:null,userPassedTest:false,questions:[]},
-  {id:"p003",title:"Edmonton Active Transportation Network",sector:"municipal",sectorName:"Local Roads",sectorId:"mf_roads",status:"passed",author:"cycle_yyc",created:"2026-01-10",deadline:null,summary:"Allocate $45M over 3 years to expand cycling and pedestrian infrastructure in Edmonton, including 40km of new protected lanes and 12 new pedestrian crossings.",forVotes:8920,againstVotes:2103,totalEligible:14500,quorumPct:81,userVoted:"for",userPassedTest:true,questions:[]},
-  {id:"p004",title:"Carbon Capture R&D Investment Fund",sector:"federal",sectorName:"Climate & Environment",sectorId:"ff_climate",status:"voting",author:"dr_priya_k",created:"2026-02-20",deadline:"2026-05-20",summary:"Establish a $2B federal fund for carbon capture research partnerships between universities and industry, with results mandated to remain open-source for 5 years.",forVotes:5402,againstVotes:7801,totalEligible:16000,quorumPct:68,userVoted:null,userPassedTest:true,questions:[]},
+  {id:"p003",title:"Edmonton Active Transportation Network",sector:"municipal",sectorName:"Local Roads",sectorId:"mf_roads",status:"passed",author:"cycle_yyc",created:"2026-01-10",deadline:null,summary:"Allocate $45M over 3 years to expand cycling and pedestrian infrastructure in Edmonton, including 40km of new protected lanes and 12 new pedestrian crossings.",forVotes:8920,againstVotes:2103,totalEligible:14500,quorumPct:81,userVoted:"for",userPassedTest:true,questions:Q_P003},
+  {id:"p004",title:"Carbon Capture R&D Investment Fund",sector:"federal",sectorName:"Climate & Environment",sectorId:"ff_climate",status:"voting",author:"dr_priya_k",created:"2026-02-20",deadline:"2026-05-20",summary:"Establish a $2B federal fund for carbon capture research partnerships between universities and industry, with results mandated to remain open-source for 5 years.",forVotes:5402,againstVotes:7801,totalEligible:16000,quorumPct:68,userVoted:null,userPassedTest:true,questions:Q_P004},
 ];
 
 const INIT_LEDGER=[
@@ -293,6 +339,24 @@ export default function DDTAP({ session }){
     if (session?.user) {
       supabase.from("users").select("*").eq("id", session.user.id).single()
         .then(({ data }) => { if (data) setUserProfile(data); });
+
+      supabase.from("allocations").select("*").eq("user_id", session.user.id).eq("tax_year", 2026)
+        .then(({ data }) => {
+          if (data && data.length > 0) {
+            const loaded = {
+              federal:   { ...INIT_ALLOC.federal },
+              provincial:{ ...INIT_ALLOC.provincial },
+              municipal: { ...INIT_ALLOC.municipal },
+            };
+            data.forEach(row => {
+              if (loaded[row.level]?.[row.sector_id] !== undefined) {
+                loaded[row.level][row.sector_id] = row.percentage;
+              }
+            });
+            setAlloc(loaded);
+            setSavedAlloc(loaded);
+          }
+        });
     }
   }, [session]);
 
@@ -316,14 +380,105 @@ export default function DDTAP({ session }){
   const[testScore,setTestScore]=useState(null);
   const[notif,setNotif]=useState(null);
   const[showCreate,setShowCreate]=useState(false);
+  const[createStep,setCreateStep]=useState(1);
   const[newProp,setNewProp]=useState({title:"",sectorId:"ff_health",summary:""});
+  const[quizQs,setQuizQs]=useState(Array.from({length:10},(_,i)=>({id:i,q:"",opts:["","","",""],a:0})));
+  const[discussions,setDiscussions]=useState({});
+  const[commentDraft,setCommentDraft]=useState("");
+  const[replyingTo,setReplyingTo]=useState(null);
+  const[replyDraft,setReplyDraft]=useState("");
+  const[highlightedComment,setHighlightedComment]=useState(null);
+  const[myReps,setMyReps]=useState([]); // sectors where I have assigned a rep
+  const[repFor,setRepFor]=useState([]); // citizens I am repping
+  const[repTestPassed,setRepTestPassed]=useState({}); // {proposalId: true} - tests passed as rep
+  const[showAssignRep,setShowAssignRep]=useState(false);
+  const[assignRepSector,setAssignRepSector]=useState(null);
+  const[assignRepUsername,setAssignRepUsername]=useState("");
+  const[nextAlloc,setNextAlloc]=useState(INIT_ALLOC);
+  const[taxYearMode,setTaxYearMode]=useState("current");
+
+  const updateQ=(i,field,val)=>setQuizQs(prev=>prev.map((q,idx)=>idx===i?{...q,[field]:val}:q));
+  const updateOpt=(qi,oi,val)=>setQuizQs(prev=>prev.map((q,idx)=>idx===qi?{...q,opts:q.opts.map((o,j)=>j===oi?val:o)}:q));
+  const quizValid=quizQs.every(q=>q.q.trim()&&q.opts.every(o=>o.trim()));
   const[ledger,setLedger]=useState(INIT_LEDGER);
   const[filterSec,setFilterSec]=useState("all");
+  const[selectedSector,setSelectedSector]=useState(null);
+  const[showPast,setShowPast]=useState(false);
   const[aboutTab,setAboutTab]=useState("ddtap");
   const[sidebarOpen,setSidebarOpen]=useState(false);
+  const[viewingProfile,setViewingProfile]=useState(null);
 
   const notify=(msg)=>{setNotif(msg);setTimeout(()=>setNotif(null),3200);};
   const flexTotal=(lvl)=>Object.values(alloc[lvl]).reduce((a,b)=>a+b,0);
+  const nextFlexTotal=(lvl)=>Object.values(nextAlloc[lvl]).reduce((a,b)=>a+b,0);
+
+  const addComment=(proposalId,parentId=null)=>{
+    const draft=parentId?replyDraft:commentDraft;
+    if(!draft.trim())return;
+    const comment={id:Date.now(),author:USER.username,text:draft.trim(),ts:new Date().toISOString().slice(0,16).replace("T"," "),parentId};
+    setDiscussions(prev=>({...prev,[proposalId]:[...(prev[proposalId]||[]),comment]}));
+    if(parentId){setReplyDraft("");setReplyingTo(null);}
+    else setCommentDraft("");
+    notify("Comment posted ✓");
+  };
+
+  const updateNextAlloc=(lvl,id,val)=>{
+    const others={...nextAlloc[lvl]};delete others[id];
+    const otherSum=Object.values(others).reduce((a,b)=>a+b,0);
+    setNextAlloc(prev=>({...prev,[lvl]:{...prev[lvl],[id]:Math.min(Math.max(0,val),70-otherSum)}}));
+  };
+
+  const saveNextAlloc=()=>{
+    const nid="L"+String(parseInt(ledger[0].id.slice(1))+1).padStart(4,"0");
+    setLedger(prev=>[{id:nid,type:"ALLOCATION",actor:USER.username,action:"2027 allocation saved",target:"Federal · Provincial · Municipal",sector:"All Sectors",ts:new Date().toISOString().slice(0,16).replace("T"," "),pts:"—"},...prev]);
+    notify("2027 allocation saved to civic ledger ✓");
+  };
+
+  // Load reps from Supabase
+  useEffect(()=>{
+    if(!session?.user)return;
+    supabase.from("representatives").select("*").eq("citizen_id",session.user.id)
+      .then(({data})=>{ if(data) setMyReps(data); });
+    supabase.from("representatives").select("*").eq("rep_id",session.user.id)
+      .then(({data})=>{ if(data) setRepFor(data); });
+  },[session]);
+
+  const assignRep=async(sectorId,sectorName,level,repUsername)=>{
+    if(repUsername===USER.username){notify("You cannot represent yourself");return;}
+    const{data:repUser}=await supabase.from("users").select("id,username").eq("username",repUsername).single();
+    if(!repUser){notify("User not found");return;}
+    const row={citizen_id:session.user.id,rep_id:repUser.id,sector_id:sectorId,sector_name:sectorName,level};
+    const{error}=await supabase.from("representatives").upsert(row,{onConflict:"citizen_id,sector_id"});
+    if(error){notify("Error assigning rep");return;}
+    setMyReps(prev=>[...prev.filter(r=>r.sector_id!==sectorId),{...row,rep_username:repUsername}]);
+    setShowAssignRep(false);setAssignRepUsername("");
+    notify(`@${repUsername} assigned as your rep for ${sectorName} ✓`);
+  };
+
+  const removeRep=async(sectorId,sectorName)=>{
+    await supabase.from("representatives").delete().eq("citizen_id",session.user.id).eq("sector_id",sectorId);
+    setMyReps(prev=>prev.filter(r=>r.sector_id!==sectorId));
+    // Clear any votes cast by rep on active proposals in this sector
+    setProposals(prev=>prev.map(p=>{
+      if(p.sectorId!==sectorId||p.status!=="voting")return p;
+      if(p.repVote){
+        const wasFor=p.repVote==="for",wasAgainst=p.repVote==="against";
+        return{...p,repVote:null,userVoted:null,
+          forVotes:wasFor?p.forVotes-1:p.forVotes,
+          againstVotes:wasAgainst?p.againstVotes-1:p.againstVotes};
+      }
+      return p;
+    }));
+    notify(`Representative removed for ${sectorName}. Their active votes have been cleared.`);
+  };
+
+  const castRepVote=(pid,side,citizenUsername)=>{
+    setProposals(prev=>prev.map(p=>{
+      if(p.id!==pid)return p;
+      return{...p,repVote:side};
+    }));
+    notify(`Vote cast on behalf of @${citizenUsername} ✓`);
+  };
 
   const updateAlloc=(lvl,id,val)=>{
     const others={...alloc[lvl]};delete others[id];
@@ -339,17 +494,21 @@ export default function DDTAP({ session }){
   };
 
   const castVote=(pid,side)=>{
-    setProposals(prev=>prev.map(p=>{
-      if(p.id!==pid)return p;
-      const wasFor=p.userVoted==="for",wasAgainst=p.userVoted==="against",toggling=p.userVoted===side;
-      let fv=p.forVotes,av=p.againstVotes;
+    const p=proposals.find(x=>x.id===pid);
+    if(!p)return;
+    const toggling=p.userVoted===side;
+    const nid="L"+String(parseInt(ledger[0].id.slice(1))+1).padStart(4,"0");
+    const entry={id:nid,type:"VOTE",actor:USER.username,action:toggling?`Retracted vote on`:`Voted ${side.toUpperCase()}`,target:p.title,sector:`${p.sector.charAt(0).toUpperCase()+p.sector.slice(1)} · ${p.sectorName}`,ts:new Date().toISOString().slice(0,16).replace("T"," "),pts:`${savedAlloc[p.sector]?.[p.sectorId]||0}pts`};
+    setProposals(prev=>prev.map(x=>{
+      if(x.id!==pid)return x;
+      const wasFor=x.userVoted==="for",wasAgainst=x.userVoted==="against";
+      let fv=x.forVotes,av=x.againstVotes;
       if(!toggling){if(side==="for"){fv++;if(wasAgainst)av--;}else{av++;if(wasFor)fv--;}}
       else{if(side==="for")fv--;else av--;}
-      const nid="L"+String(parseInt(ledger[0].id.slice(1))+1).padStart(4,"0");
-      setLedger(le=>[{id:nid,type:"VOTE",actor:USER.username,action:`Voted ${side.toUpperCase()}`,target:p.title,sector:`${p.sector.charAt(0).toUpperCase()+p.sector.slice(1)} · ${p.sectorName}`,ts:new Date().toISOString().slice(0,16).replace("T"," "),pts:`${savedAlloc[p.sector]?.[p.sectorId]||0}pts`},...le]);
-      return{...p,forVotes:fv,againstVotes:av,userVoted:toggling?null:side};
+      return{...x,forVotes:fv,againstVotes:av,userVoted:toggling?null:side};
     }));
-    notify("Vote recorded on civic ledger ✓");
+    setLedger(prev=>[entry,...prev]);
+    notify(toggling?"Vote retracted":"Vote recorded on civic ledger ✓");
   };
 
   const submitTest=(p)=>{
@@ -362,14 +521,24 @@ export default function DDTAP({ session }){
     const all3=[...SECTORS.federal.flexible,...SECTORS.provincial.flexible,...SECTORS.municipal.flexible];
     const sec=all3.find(s=>s.id===newProp.sectorId);
     const lvl=sec.id.startsWith("ff")?"federal":sec.id.startsWith("pf")?"provincial":"municipal";
-    setProposals(prev=>[{id:`p${Date.now()}`,title:newProp.title,sector:lvl,sectorName:sec.name,sectorId:sec.id,status:"deliberation",author:USER.username,created:new Date().toISOString().slice(0,10),deadline:new Date(Date.now()+90*86400000).toISOString().slice(0,10),summary:newProp.summary,forVotes:0,againstVotes:0,totalEligible:0,quorumPct:0,userVoted:null,userPassedTest:false,questions:[]},...prev]);
-    setShowCreate(false);setNewProp({title:"",sectorId:"ff_health",summary:""});
+    const questions=quizQs.map(q=>({q:q.q,opts:q.opts,a:q.a}));
+    setProposals(prev=>[{id:`p${Date.now()}`,title:newProp.title,sector:lvl,sectorName:sec.name,sectorId:sec.id,status:"voting",author:USER.username,created:new Date().toISOString().slice(0,10),deadline:new Date(Date.now()+90*86400000).toISOString().slice(0,10),summary:newProp.summary,forVotes:0,againstVotes:0,totalEligible:0,quorumPct:0,userVoted:null,userPassedTest:false,questions},...prev]);
+    setShowCreate(false);
+    setNewProp({title:"",sectorId:"ff_health",summary:""});
+    setQuizQs(Array.from({length:10},(_,i)=>({id:i,q:"",opts:["","","",""],a:0})));
+    setCreateStep(1);
     notify("Proposal submitted to civic ledger ✓");
   };
 
-  const navTo=(v)=>{setView(v);setSidebarOpen(false);};
+  const navTo=(v)=>{setView(v);setSidebarOpen(false);if(v==="profile")setViewingProfile(null);};
   const openProp=(p)=>{setSelectedId(p.id);setView("proposal");setDtab("overview");setTestAns({});setTestDone(false);setTestScore(null);setSidebarOpen(false);};
   const getSel=()=>proposals.find(x=>x.id===selectedId);
+
+  const UserLink=({username})=>(
+    <span style={{color:"var(--blue)",cursor:"pointer",textDecoration:"underline"}} onClick={e=>{e.stopPropagation();setViewingProfile(username);setView("profile");}}>
+      {username}
+    </span>
+  );
 
   const Badge=({status})=>{
     const m={voting:["VOTING","b-voting"],deliberation:["DELIBERATION","b-deliberation"],passed:["PASSED","b-passed"],failed:["FAILED","b-failed"]};
@@ -384,7 +553,14 @@ export default function DDTAP({ session }){
 
   const PCard=({p})=>{
     const ua=savedAlloc[p.sector]?.[p.sectorId]||0;
-    return<div className={`prop-card s-${p.status}`} onClick={()=>openProp(p)}><div className="prop-head"><div className="prop-title">{p.title}</div><Badge status={p.status}/></div><div className="prop-meta"><span>{p.sector.toUpperCase()} · {p.sectorName.toUpperCase()}</span><span>by {p.author}</span>{p.deadline&&<span>Closes {p.deadline}</span>}{ua>0?<span style={{color:"var(--blue)"}}>Your weight: {ua}pts</span>:<span style={{color:"var(--red)"}}>No allocation</span>}</div><div className="prop-sum">{p.summary.length>160?p.summary.slice(0,160)+"…":p.summary}</div>{p.status!=="deliberation"&&<VBar p={p}/>}</div>;
+    return<div className={`prop-card s-${p.status}`} onClick={()=>openProp(p)}>
+      <div className="prop-head"><div className="prop-title">{p.title}</div><Badge status={p.status}/></div>
+      <div className="prop-meta"><span>{p.sector.toUpperCase()} · {p.sectorName.toUpperCase()}</span><span>by <UserLink username={p.author}/></span>{p.deadline&&<span>Closes {p.deadline}</span>}{ua>0?<span style={{color:"var(--blue)"}}>Your weight: {ua}pts</span>:<span style={{color:"var(--red)"}}>No allocation</span>}</div>
+      {p.userVoted&&<div style={{marginTop:8,fontFamily:"var(--fmono)",fontSize:10,padding:"4px 8px",borderRadius:2,display:"inline-block",background:p.userVoted==="for"?"rgba(76,174,127,.15)":"rgba(224,82,82,.15)",color:p.userVoted==="for"?"var(--green)":"var(--red)"}}>✓ You voted {p.userVoted.toUpperCase()}</div>}
+      {!p.userVoted&&p.repVote&&<div style={{marginTop:8,fontFamily:"var(--fmono)",fontSize:10,padding:"4px 8px",borderRadius:2,display:"inline-block",background:"rgba(74,158,255,.1)",color:"var(--blue)"}}>Rep voted {p.repVote.toUpperCase()} on your behalf</div>}
+      <div className="prop-sum">{p.summary.length>160?p.summary.slice(0,160)+"…":p.summary}</div>
+      {p.status!=="deliberation"&&<VBar p={p}/>}
+    </div>;
   };
 
   const AboutDDTAP=()=><div>
@@ -501,49 +677,171 @@ export default function DDTAP({ session }){
       </div>
       <div className="two-col" style={{marginBottom:14}}>
         <div className="card"><div className="ctitle">Federal Allocation</div>{SECTORS.federal.flexible.map(s=>{const pct=savedAlloc.federal[s.id]||0;return<div key={s.id} className="sec-bar-row"><div className="sec-bar-name">{s.name}</div><div className="sec-bar-track"><div className="sec-bar-fill" style={{width:`${(pct/70)*100}%`,background:s.color}}/></div><div className="sec-bar-pct">{pct}%</div></div>;})}</div>
-        <div className="card"><div className="ctitle">Recent Ledger Activity</div>{ledger.slice(0,5).map(e=><div key={e.id} className="act-item"><div className={`act-ico ${e.type==="VOTE"?"act-ico-vote":e.type==="PROPOSAL"?"act-ico-prop":"act-ico-alloc"}`}>{e.type==="VOTE"?"✓":e.type==="PROPOSAL"?"✎":e.type==="PASSED"?"✅":"⚡"}</div><div><div className="act-target">{e.action}: {e.target.length>36?e.target.slice(0,36)+"…":e.target}</div><div className="act-date">{e.actor} · {e.ts}</div></div></div>)}</div>
+        <div className="card"><div className="ctitle">Recent Ledger Activity</div>{ledger.slice(0,5).map(e=><div key={e.id} className="act-item"><div className={`act-ico ${e.type==="VOTE"?"act-ico-vote":e.type==="PROPOSAL"?"act-ico-prop":"act-ico-alloc"}`}>{e.type==="VOTE"?"✓":e.type==="PROPOSAL"?"✎":e.type==="PASSED"?"✅":"⚡"}</div><div><div className="act-target">{e.action}: {e.target.length>36?e.target.slice(0,36)+"…":e.target}</div><div className="act-date"><UserLink username={e.actor}/> · {e.ts}</div></div></div>)}</div>
       </div>
       <div className="card"><div className="ctitle" style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><span>Active Proposals</span><button className="btn-p" onClick={()=>setShowCreate(true)}>+ New Proposal</button></div><div className="prop-list">{proposals.filter(p=>p.status==="voting").map(p=><PCard key={p.id} p={p}/>)}</div></div>
     </div>;
   };
 
-  const Allocation=()=>{
-    const lvl=govLevel,secs=SECTORS[lvl],fu=flexTotal(lvl),r=70-fu;
+  const renderAllocation=()=>{
+    const lvl=govLevel,secs=SECTORS[lvl];
+    const isLocked=taxYearMode!=="next";
+    const curAlloc=taxYearMode==="next"?nextAlloc:alloc;
+    const fu=taxYearMode==="next"?nextFlexTotal(lvl):flexTotal(lvl);
+    const r=70-fu;
     return<div className="content">
-      <div className="info-box">30% of your taxes go to mandatory Critical Infrastructure. You control the remaining 70% — your vote weight in any sector equals your allocation percentage there.</div>
+      <div className="lvl-tabs" style={{marginBottom:16}}>
+        <div className={`lvl-tab ${taxYearMode==="prev"?"active":""}`} onClick={()=>setTaxYearMode("prev")}>2025 — PREVIOUS</div>
+        <div className={`lvl-tab ${taxYearMode==="current"?"active":""}`} onClick={()=>setTaxYearMode("current")}>2026 — CURRENT</div>
+        <div className={`lvl-tab ${taxYearMode==="next"?"active":""}`} onClick={()=>setTaxYearMode("next")}>2027 — PLAN AHEAD</div>
+      </div>
+      {taxYearMode==="prev"&&<div className="info-box" style={{borderColor:"rgba(142,154,176,.3)",background:"rgba(142,154,176,.04)"}}>📁 Your 2025 allocation is archived and locked. Shown for reference only.</div>}
+      {taxYearMode==="current"&&<div className="info-box" style={{borderColor:"rgba(224,82,82,.3)",background:"rgba(224,82,82,.04)"}}>🔒 Your 2026 tax allocation is locked. The tax deadline has passed and your votes are already weighted for this year. You can plan your 2027 allocation in the next tab.</div>}
+      {taxYearMode==="next"&&<div className="info-box">You are planning your 2027 allocation. This will not affect your current voting rights — those are set by your 2026 allocation. Save your plan before the 2027 tax deadline.</div>}
       <div className="lvl-tabs">{["federal","provincial","municipal"].map(l=><div key={l} className={`lvl-tab ${govLevel===l?"active":""}`} onClick={()=>setGovLevel(l)}>{l.toUpperCase()}</div>)}</div>
-      <div className="rem-bar"><span style={{color:"var(--text-dim)"}}>FLEXIBLE REMAINING:</span><span className="rem-val">{r}%</span><div className="rem-track"><div className="rem-fill" style={{width:`${(fu/70)*100}%`}}/></div><span style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)"}}>{fu}/70 used</span></div>
+      {!isLocked&&<div className="rem-bar"><span style={{color:"var(--text-dim)"}}>FLEXIBLE REMAINING:</span><span className="rem-val">{r}%</span><div className="rem-track"><div className="rem-fill" style={{width:`${(fu/70)*100}%`}}/></div><span style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)"}}>{fu}/70 used</span></div>}
       <div className="crit-sec"><div className="crit-lbl">🔒 CRITICAL INFRASTRUCTURE (30% — MANDATORY)</div><div className="crit-grid">{secs.critical.map(s=><div key={s.id} className="crit-item"><span className="crit-name">{s.name}</span><span className="crit-pct">{s.pct}%</span></div>)}</div></div>
-      <div className="card"><div className="ctitle">Flexible Allocation — 70%</div>{secs.flexible.map(s=>{const val=alloc[lvl][s.id]||0;const bg=`linear-gradient(to right,${s.color} 0%,${s.color} ${(val/70)*100}%,var(--border) ${(val/70)*100}%,var(--border) 100%)`;return<div key={s.id} className="alloc-row"><div className="alloc-head"><span className="alloc-name"><span style={{width:8,height:8,borderRadius:"50%",background:s.color,display:"inline-block",flexShrink:0}}/>{s.name}</span><span className="alloc-pct">{val}% <span style={{color:"var(--text-dim)",fontSize:10}}>(~${Math.round(val*USER.taxPaid/100).toLocaleString()})</span></span></div><input type="range" min={0} max={70} step={1} value={val} style={{background:bg}} onChange={e=>updateAlloc(lvl,s.id,parseInt(e.target.value))}/></div>;})}
-      <div style={{marginTop:22,display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}><button className="save-btn" onClick={saveAlloc}>Save to Civic Ledger</button>{r>0&&<span style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--gold)"}}>⚠ {r}% unallocated — distributes to Critical Infrastructure at deadline</span>}</div></div>
+      <div className="card"><div className="ctitle">Flexible Allocation — 70%{isLocked&&" · LOCKED"}</div>
+        {secs.flexible.map(s=>{
+          const val=curAlloc[lvl][s.id]||0;
+          const bg=`linear-gradient(to right,${s.color} 0%,${s.color} ${(val/70)*100}%,var(--border) ${(val/70)*100}%,var(--border) 100%)`;
+          return<div key={s.id} className="alloc-row">
+            <div className="alloc-head">
+              <span className="alloc-name"><span style={{width:8,height:8,borderRadius:"50%",background:s.color,display:"inline-block",flexShrink:0}}/>{s.name}</span>
+              <span className="alloc-pct">{val}% <span style={{color:"var(--text-dim)",fontSize:10}}>(~${Math.round(val*USER.taxPaid/100).toLocaleString()})</span></span>
+            </div>
+            {isLocked
+              ?<div style={{height:5,background:bg,borderRadius:3,marginTop:2}}/>
+              :<input type="range" min={0} max={70} step={1} value={val} style={{background:bg}} onChange={e=>updateNextAlloc(lvl,s.id,parseInt(e.target.value))}/>}
+          </div>;
+        })}
+        {!isLocked&&<div style={{marginTop:22,display:"flex",alignItems:"center",gap:14,flexWrap:"wrap"}}>
+          <button className="save-btn" onClick={saveNextAlloc}>Save 2027 Plan to Ledger</button>
+          {r>0&&<span style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--gold)"}}>⚠ {r}% unallocated — distributes to Critical Infrastructure at deadline</span>}
+        </div>}
+      </div>
     </div>;
   };
 
   const Proposals=()=>{
-    const secs=["all",...new Set(proposals.map(p=>p.sector))];
-    const filtered=filterSec==="all"?proposals:proposals.filter(p=>p.sector===filterSec);
+    const allSectors=[
+      ...SECTORS.federal.flexible.map(s=>({...s,level:"federal",levelLabel:"Federal"})),
+      ...SECTORS.federal.critical.map(s=>({...s,level:"federal",levelLabel:"Federal",color:"#c8a84b"})),
+      ...SECTORS.provincial.flexible.map(s=>({...s,level:"provincial",levelLabel:"Provincial"})),
+      ...SECTORS.provincial.critical.map(s=>({...s,level:"provincial",levelLabel:"Provincial",color:"#c8a84b"})),
+      ...SECTORS.municipal.flexible.map(s=>({...s,level:"municipal",levelLabel:"Municipal"})),
+      ...SECTORS.municipal.critical.map(s=>({...s,level:"municipal",levelLabel:"Municipal",color:"#c8a84b"})),
+    ];
+
+    if(selectedSector){
+      const active=proposals.filter(p=>p.sectorId===selectedSector.id&&(p.status==="voting"));
+      const past=proposals.filter(p=>p.sectorId===selectedSector.id&&(p.status==="passed"||p.status==="failed"));
+      const isCritSector=SECTORS[selectedSector.level]?.critical.some(s=>s.id===selectedSector.id);
+      const ua=isCritSector?(selectedSector.pct||10):savedAlloc[selectedSector.level]?.[selectedSector.id]||0;
+      return<div className="content">
+        <button className="back-btn" onClick={()=>{setSelectedSector(null);setShowPast(false);}}>← Back to Sectors</button>
+        <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:6}}>
+          <div style={{width:10,height:10,borderRadius:"50%",background:selectedSector.color||"var(--gold)",flexShrink:0}}/>
+          <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)"}}>{selectedSector.levelLabel.toUpperCase()} · SECTOR</div>
+        </div>
+        <div style={{fontFamily:"var(--fdisplay)",fontSize:24,fontWeight:700,marginBottom:6}}>{selectedSector.name}</div>
+        <div style={{fontFamily:"var(--fmono)",fontSize:11,color:ua>0?"var(--gold)":"var(--text-dim)",marginBottom:22}}>
+          {ua>0?`Your allocation: ${ua}% · ${ua} participation points`:"You have no allocation in this sector"}
+        </div>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
+          <div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)"}}>{active.length} active proposal{active.length!==1?"s":""}</div>
+          {ua>0&&<button className="btn-p" onClick={()=>{
+            const allFlexIds=SECTORS[selectedSector.level]?.flexible.map(s=>s.id)||[];
+            const isCrit=!allFlexIds.includes(selectedSector.id);
+            const firstEligible=isCrit
+              ?([...SECTORS[selectedSector.level].flexible].find(s=>savedAlloc[selectedSector.level][s.id]>0)||SECTORS[selectedSector.level].flexible[0]).id
+              :selectedSector.id;
+            setNewProp(p=>({...p,sectorId:firstEligible}));
+            setShowCreate(true);
+          }}>+ New Proposal</button>}
+        </div>
+        {active.length>0?<div className="prop-list">{active.map(p=><PCard key={p.id} p={p}/>)}</div>
+          :<div style={{padding:"24px",textAlign:"center",fontFamily:"var(--fmono)",fontSize:12,color:"var(--text-dim)",background:"var(--bg-card)",border:"1px solid var(--border)",borderRadius:3}}>No active proposals in this sector</div>}
+        {past.length>0&&<>
+          <div className="past-toggle" onClick={()=>setShowPast(!showPast)}>
+            <span style={{fontSize:14}}>{showPast?"▼":"▶"}</span>
+            Past Proposals ({past.length})
+            <span style={{marginLeft:"auto",fontSize:10}}>Votes are locked</span>
+          </div>
+          {showPast&&<div className="prop-list" style={{marginTop:10}}>{past.map(p=><PCard key={p.id} p={p}/>)}</div>}
+        </>}
+      </div>;
+    }
+
+    const LevelSection=({level,label})=>{
+      const flex=SECTORS[level].flexible;
+      const crit=SECTORS[level].critical;
+      return<div style={{marginBottom:32}}>
+        <div className="sector-level-title">
+          <span style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--gold)",letterSpacing:".08em"}}>{label.toUpperCase()}</span>
+        </div>
+        <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)",marginBottom:10,letterSpacing:".06em"}}>CRITICAL INFRASTRUCTURE</div>
+        <div className="sector-grid" style={{marginBottom:18}}>
+          {crit.map(s=>{
+            const count=proposals.filter(p=>p.sectorId===s.id).length;
+            return<div key={s.id} className="sector-card" style={{"--sc":"var(--gold)"}} onClick={()=>{setSelectedSector({...s,level,levelLabel:label,color:"#c8a84b"});setShowPast(false);}}>
+              <style>{`.sector-card[data-id="${s.id}"]::before{background:#c8a84b}`}</style>
+              <div style={{width:8,height:8,borderRadius:"50%",background:"#c8a84b"}}/>
+              <div className="sector-card-name">{s.name}</div>
+              <div className="sector-card-meta"><span>{count} proposal{count!==1?"s":""}</span><span style={{color:"var(--gold)"}}>🔒 {s.pct}% mandatory</span></div>
+            </div>;
+          })}
+        </div>
+        <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)",marginBottom:10,letterSpacing:".06em"}}>FLEXIBLE SECTORS</div>
+        <div className="sector-grid">
+          {flex.map(s=>{
+            const ua=savedAlloc[level][s.id]||0;
+            const active=proposals.filter(p=>p.sectorId===s.id&&p.status==="voting").length;
+            const past=proposals.filter(p=>p.sectorId===s.id&&(p.status==="passed"||p.status==="failed")).length;
+            const hasAlloc=ua>0;
+            return<div key={s.id} className={`sector-card ${hasAlloc?"has-alloc":""}`} style={{borderTopColor:hasAlloc?s.color:"var(--border)"}} onClick={()=>{setSelectedSector({...s,level,levelLabel:label});setShowPast(false);}}>
+              <div style={{width:8,height:8,borderRadius:"50%",background:s.color}}/>
+              <div className="sector-card-name">{s.name}</div>
+              <div className="sector-card-meta">
+                <span>{active} active</span>
+                {past>0&&<span>{past} past</span>}
+              </div>
+              {hasAlloc&&<div className="sector-card-alloc">{ua}pts · eligible to propose & vote</div>}
+              {!hasAlloc&&<div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)",marginTop:8}}>No allocation</div>}
+            </div>;
+          })}
+        </div>
+      </div>;
+    };
+
     return<div className="content">
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:22,gap:10,flexWrap:"wrap"}}>
-        <div className="lvl-tabs" style={{flex:1,maxWidth:340,marginBottom:0}}>{secs.map(s=><div key={s} className={`lvl-tab ${filterSec===s?"active":""}`} onClick={()=>setFilterSec(s)}>{s.toUpperCase()}</div>)}</div>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:24}}>
+        <div>
+          <div style={{fontFamily:"var(--fdisplay)",fontSize:20,fontWeight:700}}>All Sectors</div>
+          <div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)",marginTop:4}}>Click a sector to view its proposals</div>
+        </div>
         <button className="btn-p" onClick={()=>setShowCreate(true)}>+ New Proposal</button>
       </div>
-      <div className="prop-list">{filtered.map(p=><PCard key={p.id} p={p}/>)}</div>
+      <LevelSection level="federal" label="Federal"/>
+      <LevelSection level="provincial" label="Provincial"/>
+      <LevelSection level="municipal" label="Municipal"/>
     </div>;
   };
 
-  const ProposalDetail=()=>{
+  const renderProposalDetail=()=>{
     const p=getSel();if(!p)return null;
     const ua=savedAlloc[p.sector]?.[p.sectorId]||0;
-    const canVote=p.status==="voting"&&ua>0&&p.userPassedTest;
+    const canVote=p.status==="voting"&&ua>0&&p.userPassedTest&&p.questions.length>0;
     const tot=p.forVotes+p.againstVotes,fp=tot>0?Math.round((p.forVotes/tot)*100):0;
     const hasQ=p.questions.length>0;
     const tabs=["overview",...(hasQ&&!p.userPassedTest&&p.status==="voting"?["test"]:[]),"vote"];
+    const noTest=!hasQ&&p.status==="voting";
     return<div className="content">
       <button className="back-btn" onClick={()=>setView("proposals")}>← Back to Proposals</button>
       <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:10}}><Badge status={p.status}/><span style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)"}}>{p.sector.toUpperCase()} · {p.sectorName.toUpperCase()}</span></div>
       <div className="det-title">{p.title}</div>
       <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)",display:"flex",gap:18,flexWrap:"wrap",marginBottom:22}}>
-        <span>By {p.author}</span><span>Filed {p.created}</span>{p.deadline&&<span>Closes {p.deadline}</span>}
+        <span>By <UserLink username={p.author}/></span><span>Filed {p.created}</span>{p.deadline&&<span>Closes {p.deadline}</span>}
         {ua>0?<span style={{color:"var(--blue)"}}>Your weight: {ua}pts</span>:<span style={{color:"var(--red)"}}>⚠ No allocation — cannot vote</span>}
       </div>
       <div className="dtabs">{tabs.map(t=><div key={t} className={`dtab ${dtab===t?"active":""}`} onClick={()=>setDtab(t)}>{t==="overview"?"Overview":t==="test"?"Comprehension Test":"Vote"}{t==="test"&&!p.userPassedTest&&<span style={{color:"var(--gold)",marginLeft:4}}>Required</span>}{t==="vote"&&p.userVoted&&<span style={{color:"var(--green)",marginLeft:4}}>✓</span>}</div>)}</div>
@@ -558,24 +856,179 @@ export default function DDTAP({ session }){
         </div>
       </div>}
       {dtab==="test"&&<div className="card">{testDone?<><div className="score-disp"><div className={`score-num ${testScore>=5?"score-pass":"score-fail"}`}>{testScore}/10</div><div className="score-lbl" style={{color:testScore>=5?"var(--green)":"var(--red)"}}>{testScore>=5?"✅ PASSED — You may now vote":"❌ FAILED — Minimum 5/10 required"}</div>{testScore>=5?<button className="save-btn" style={{marginTop:22}} onClick={()=>setDtab("vote")}>Proceed to Vote →</button>:<button className="btn-g" style={{marginTop:22}} onClick={()=>{setTestAns({});setTestDone(false);setTestScore(null);}}>Retake Test</button>}</div><div style={{marginTop:22}}>{p.questions.map((q,i)=><div key={i} className="qblock"><div className="qnum">Q{i+1}</div><div className="qtext">{q.q}</div><div className="opts">{q.opts.map((opt,j)=>{const isSel=testAns[i]===j,isCorr=j===q.a;const cls=isSel&&isCorr?"corr":isSel?"incorr":isCorr?"corr":"";return<div key={j} className={`opt-btn ${cls}`}>{opt}</div>;})}</div></div>)}</div></>:<><div className="ctitle">Reading & Comprehension Test</div><p style={{fontSize:12,color:"var(--cream-dim)",marginBottom:22,lineHeight:1.7}}>Answer at least <strong style={{color:"var(--gold)"}}>5 of 10</strong> correctly to unlock voting.</p>{p.questions.map((q,i)=><div key={i} className="qblock"><div className="qnum">QUESTION {i+1} OF {p.questions.length}</div><div className="qtext">{q.q}</div><div className="opts">{q.opts.map((opt,j)=><button key={j} className={`opt-btn ${testAns[i]===j?"sel":""}`} onClick={()=>setTestAns(prev=>({...prev,[i]:j}))}>{opt}</button>)}</div></div>)}<button className="save-btn" style={{opacity:Object.keys(testAns).length<p.questions.length?.5:1}} onClick={()=>submitTest(p)}>Submit Test ({Object.keys(testAns).length}/{p.questions.length} answered)</button></>}</div>}
-      {dtab==="vote"&&<div className="card"><div className="ctitle">Cast Your Vote</div>{(!canVote&&!p.userVoted)?<div style={{padding:28,textAlign:"center",fontFamily:"var(--fmono)",fontSize:12}}>{ua===0?<span style={{color:"var(--red)"}}>No allocation in {p.sectorName}. Go to Tax Allocation first.</span>:!p.userPassedTest?<span style={{color:"var(--gold)"}}>Pass the comprehension test before voting. <button className="btn-g" style={{marginLeft:8}} onClick={()=>setDtab("test")}>Take Test</button></span>:<span>This proposal is not in the voting phase.</span>}</div>:<><p style={{fontSize:13,lineHeight:1.75,color:"var(--cream-dim)",marginBottom:16}}>{p.summary}</p><div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)",padding:"9px 12px",background:"rgba(0,0,0,.3)",borderRadius:2,marginBottom:18}}>Your vote carries <span style={{color:"var(--gold)"}}>{ua} participation points</span> in {p.sectorName}</div><div className="vote-acts"><button className={`vote-btn vbf ${p.userVoted==="for"?"vactive":""}`} onClick={()=>castVote(p.id,"for")}>▲ VOTE FOR{p.userVoted==="for"&&" (Active)"}</button><button className={`vote-btn vba ${p.userVoted==="against"?"vactive":""}`} onClick={()=>castVote(p.id,"against")}>▼ VOTE AGAINST{p.userVoted==="against"&&" (Active)"}</button></div>{p.userVoted&&<p style={{marginTop:10,fontFamily:"var(--fmono)",fontSize:10,color:"var(--green)"}}>✓ Vote recorded. Click again to change or retract.</p>}</>}</div>}
+      {dtab==="vote"&&<div className="card"><div className="ctitle">Cast Your Vote</div>
+        {noTest?
+          <div style={{padding:28,textAlign:"center",fontFamily:"var(--fmono)",fontSize:12,color:"var(--red)"}}>⚠ This proposal has no comprehension test. Voting is blocked until a test is added by the moderator team.</div>
+        :(p.status==="passed"||p.status==="failed")?
+          <div style={{padding:24,fontFamily:"var(--fmono)",fontSize:12,color:"var(--text-dim)"}}>
+            {p.userVoted?<span style={{color:"var(--green)"}}>✓ You voted {p.userVoted.toUpperCase()} on this proposal. The vote is now closed and your vote is permanently recorded.</span>:<span>This proposal has closed. Voting is no longer available.</span>}
+          </div>
+        :(!canVote&&!p.userVoted)?<div style={{padding:28,textAlign:"center",fontFamily:"var(--fmono)",fontSize:12}}>{ua===0?<span style={{color:"var(--red)"}}>No allocation in {p.sectorName}. Go to Tax Allocation first.</span>:!p.userPassedTest?<span style={{color:"var(--gold)"}}>Pass the comprehension test before voting. <button className="btn-g" style={{marginLeft:8}} onClick={()=>setDtab("test")}>Take Test</button></span>:<span>This proposal is not in the voting phase.</span>}</div>
+        :<><p style={{fontSize:13,lineHeight:1.75,color:"var(--cream-dim)",marginBottom:16}}>{p.summary}</p>
+          {p.repVote&&!p.userVoted&&<div style={{fontFamily:"var(--fmono)",fontSize:11,padding:"10px 14px",background:"rgba(74,158,255,.08)",border:"1px solid rgba(74,158,255,.2)",borderRadius:2,marginBottom:14,color:"var(--blue)"}}>Your representative voted <strong>{p.repVote.toUpperCase()}</strong> on your behalf. You can override this by casting your own vote below.</div>}
+          <div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)",padding:"9px 12px",background:"rgba(0,0,0,.3)",borderRadius:2,marginBottom:18}}>Your vote carries <span style={{color:"var(--gold)"}}>{ua} participation points</span> in {p.sectorName}</div>
+          <div className="vote-acts"><button className={`vote-btn vbf ${p.userVoted==="for"?"vactive":""}`} onClick={()=>castVote(p.id,"for")}>▲ VOTE FOR{p.userVoted==="for"&&" (Active)"}</button><button className={`vote-btn vba ${p.userVoted==="against"?"vactive":""}`} onClick={()=>castVote(p.id,"against")}>▼ VOTE AGAINST{p.userVoted==="against"&&" (Active)"}</button></div>
+          {p.userVoted&&<p style={{marginTop:10,fontFamily:"var(--fmono)",fontSize:10,color:"var(--green)"}}>✓ Vote recorded. Click again to change or retract.</p>}
+        </>}
+      </div>}
+
+      <div className="card" style={{marginTop:22}}>
+        <div className="ctitle">Discussion</div>
+        {ua===0&&<div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)",marginBottom:14}}>You must have allocation in {p.sectorName} to participate in this discussion.</div>}
+        {(()=>{
+          const allComments=discussions[p.id]||[];
+          const renderThread=(parentId,depth)=>{
+            const children=allComments.filter(c=>c.parentId===(parentId||null));
+            if(children.length===0)return null;
+            return children.map(c=>{
+              const isHighlighted=highlightedComment===c.id;
+              if(isHighlighted){setTimeout(()=>document.getElementById(`comment-${c.id}`)?.scrollIntoView({behavior:"smooth",block:"center"}),100);}
+              return(
+              <div key={c.id} style={{marginTop:10}}>
+                <div id={`comment-${c.id}`} className="comment-box" style={isHighlighted?{borderLeftColor:"var(--gold)",background:"rgba(200,168,75,.08)",outline:"1px solid rgba(200,168,75,.3)"}:{}}>
+                  <div className="comment-header">
+                    <UserLink username={c.author}/>
+                    <span>{c.ts}</span>
+                  </div>
+                  <div className="comment-text">{c.text}</div>
+                  {ua>0&&<div style={{display:"flex",gap:6,marginTop:8,alignItems:"center"}}>
+                    <textarea
+                      className="finput"
+                      rows={1}
+                      style={{fontSize:12,padding:"6px 10px",resize:"none",flex:1,minHeight:"unset",lineHeight:1.4}}
+                      placeholder={`Reply to @${c.author}…`}
+                      value={replyingTo===c.id?replyDraft:""}
+                      onFocus={()=>{setReplyingTo(c.id);setReplyDraft("");}}
+                      onChange={e=>setReplyDraft(e.target.value)}
+                      onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&replyDraft.trim()){e.preventDefault();addComment(p.id,c.id);}}}
+                    />
+                    {replyingTo===c.id&&replyDraft.trim()&&<button className="btn-p" style={{padding:"6px 12px",fontSize:11,flexShrink:0}} onClick={()=>addComment(p.id,c.id)}>Post</button>}
+                  </div>}
+                </div>
+                {depth<10&&<div className="comment-children">{renderThread(c.id,depth+1)}</div>}
+              </div>
+            );});
+          };
+          return<>
+            {allComments.filter(c=>!c.parentId).length===0&&<div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)",marginBottom:14}}>No comments yet. Start the discussion.</div>}
+            {renderThread(null,0)}
+          </>;
+        })()}
+        {ua>0&&<div style={{marginTop:16}}>
+          <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--gold)",marginBottom:6}}>ADD A TOP-LEVEL COMMENT</div>
+          <textarea className="finput ftarea" style={{minHeight:70,marginBottom:8}} placeholder="Be factual, relevant, and civil. All comments are public and recorded." value={commentDraft} onChange={e=>setCommentDraft(e.target.value)}/>
+          <button className="btn-p" onClick={()=>addComment(p.id)} disabled={!commentDraft.trim()}>Post Comment</button>
+        </div>}
+      </div>
     </div>;
   };
 
   const Ledger=()=><div className="content">
-    <div className="info-box">The Government-Hosted Distributed Ledger (GHDL) is an append-only, publicly verifiable record of all civic actions. Every entry is permanent and tamper-proof. <span style={{color:"var(--gold)"}}>Your entries are highlighted.</span></div>
+    <div className="info-box">The Government-Hosted Distributed Ledger (GHDL) is an append-only, publicly verifiable record of all civic actions. Every entry is permanent and tamper-proof. <span style={{color:"var(--gold)"}}>Your entries are highlighted.</span> Click a row to open the proposal. Click an actor name to view their profile.</div>
     <div className="card"><div className="ctitle" style={{display:"flex",justifyContent:"space-between"}}><span>{ledger.length} Ledger Entries</span><span style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--green)"}}>● LIVE · GHDL v1.0</span></div>
-    <div style={{overflowX:"auto"}}><table className="ledger-tbl"><thead><tr><th>ID</th><th>TYPE</th><th>ACTOR</th><th>ACTION</th><th>TARGET</th><th>SECTOR</th><th>TIME</th><th>WT</th></tr></thead><tbody>{ledger.map(e=><tr key={e.id}><td style={{color:"var(--text-dim)"}}>{e.id}</td><td><span className={`ltype lt-${e.type}`}>{e.type}</span></td><td style={{color:e.actor===USER.username?"var(--gold)":"var(--cream-dim)"}}>{e.actor}</td><td>{e.action}</td><td style={{maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{e.target}</td><td style={{color:"var(--text-dim)"}}>{e.sector}</td><td style={{color:"var(--text-dim)",whiteSpace:"nowrap"}}>{e.ts}</td><td style={{color:"var(--blue)"}}>{e.pts}</td></tr>)}</tbody></table></div></div>
+    <div style={{overflowX:"auto"}}><table className="ledger-tbl"><thead><tr><th>ID</th><th>TYPE</th><th>ACTOR</th><th>ACTION</th><th>TARGET</th><th>SECTOR</th><th>TIME</th><th>WT</th></tr></thead><tbody>{ledger.map(e=>{
+      const relatedProp=proposals.find(p=>p.title===e.target);
+      return<tr key={e.id} style={{cursor:relatedProp?"pointer":"default"}} onClick={()=>{if(relatedProp){openProp(relatedProp);setView("proposal");}}}>
+        <td style={{color:"var(--text-dim)"}}>{e.id}</td>
+        <td><span className={`ltype lt-${e.type}`}>{e.type}</span></td>
+        <td><span style={{color:e.actor===USER.username?"var(--gold)":"var(--blue)",cursor:"pointer",textDecoration:"underline"}} onClick={ev=>{ev.stopPropagation();setViewingProfile(e.actor);setView("profile");}}>{e.actor}</span></td>
+        <td>{e.action}</td>
+        <td style={{maxWidth:140,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:relatedProp?"var(--cream)":"var(--cream-dim)"}}>{e.target}</td>
+        <td style={{color:"var(--text-dim)"}}>{e.sector}</td>
+        <td style={{color:"var(--text-dim)",whiteSpace:"nowrap"}}>{e.ts}</td>
+        <td style={{color:"var(--blue)"}}>{e.pts}</td>
+      </tr>;
+    })}</tbody></table></div></div>
   </div>;
 
   const Profile=()=>{
-    const voted=proposals.filter(p=>p.userVoted).length;
-    const myProps=proposals.filter(p=>p.author===USER.username);
+    const isOwnProfile=!viewingProfile||viewingProfile===USER.username;
+    const displayName=isOwnProfile?USER.name:viewingProfile;
+    const displayUsername=isOwnProfile?USER.username:viewingProfile;
+    const voted=proposals.filter(p=>p.userVoted&&isOwnProfile).length;
+    const myProps=proposals.filter(p=>p.author===(isOwnProfile?USER.username:viewingProfile));
+    const userLedger=ledger.filter(e=>e.actor===(isOwnProfile?USER.username:viewingProfile));
     return<div className="content">
-      <div style={{display:"flex",gap:20,alignItems:"flex-start",marginBottom:28}}><div className="profile-av">{USER.name.charAt(0)}</div><div><div className="profile-name">{USER.name}</div><div className="profile-user">@{USER.username}</div><div className="profile-bio">Citizen · {USER.municipality}, {USER.province} · DDTAP Pilot</div></div></div>
-      <div className="two-col" style={{marginBottom:14}}><div className="stat-card"><div className="stat-val">${USER.taxPaid.toLocaleString()}</div><div className="stat-lbl">2026 TAX CONTRIBUTION</div></div><div className="stat-card"><div className="stat-val">{voted}</div><div className="stat-lbl">PROPOSALS VOTED</div></div></div>
-      <div className="card" style={{marginBottom:14}}><div className="ctitle">Participation Points by Sector</div><div className="part-grid">{["federal","provincial","municipal"].map(lvl=><div key={lvl} className="part-card"><div className="part-lvl">{lvl.toUpperCase()}</div>{SECTORS[lvl].critical.slice(0,2).map(s=><div key={s.id} className="part-row"><span className="part-nm">{s.name}</span><span className="part-pts">{s.pct}pts</span></div>)}{SECTORS[lvl].flexible.filter(s=>savedAlloc[lvl][s.id]>0).map(s=><div key={s.id} className="part-row"><span className="part-nm" style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:6,height:6,borderRadius:"50%",background:s.color,display:"inline-block",flexShrink:0}}/>{s.name.length>17?s.name.slice(0,17)+"…":s.name}</span><span className="part-pts">{savedAlloc[lvl][s.id]}pts</span></div>)}</div>)}</div></div>
-      {myProps.length>0&&<div className="card"><div className="ctitle">My Proposals</div><div className="prop-list">{myProps.map(p=><PCard key={p.id} p={p}/>)}</div></div>}
+      {!isOwnProfile&&<button className="back-btn" onClick={()=>{setViewingProfile(null);setView("ledger");}}>← Back to Ledger</button>}
+      <div style={{display:"flex",gap:20,alignItems:"flex-start",marginBottom:28}}>
+        <div className="profile-av">{displayName.charAt(0).toUpperCase()}</div>
+        <div>
+          <div className="profile-name">{displayName}</div>
+          <div className="profile-user">@{displayUsername}</div>
+          <div className="profile-bio">{isOwnProfile?`Citizen · ${USER.municipality}, ${USER.province} · DDTAP Pilot`:"DDTAP Citizen · Public Profile"}</div>
+        </div>
+      </div>
+      {isOwnProfile&&<div className="card" style={{marginBottom:14}}>
+        <div className="ctitle" style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span>My Representatives</span>
+          <button className="btn-p" style={{padding:"6px 14px",fontSize:11}} onClick={()=>setShowAssignRep(true)}>+ Assign Rep</button>
+        </div>
+        {myReps.length===0&&<div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)"}}>You have not assigned any representatives. A rep can vote on your behalf in sectors you designate.</div>}
+        {myReps.map(r=><div key={r.sector_id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"10px 0",borderBottom:"1px solid rgba(26,51,85,.4)"}}>
+          <div>
+            <div style={{fontSize:13,color:"var(--cream)"}}>{r.sector_name}</div>
+            <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)",marginTop:2}}>
+              Rep: <UserLink username={r.rep_username||"unknown"}/>  · {r.level}
+            </div>
+          </div>
+          <button className="btn-g" style={{padding:"5px 12px",fontSize:10,color:"var(--red)",borderColor:"rgba(224,82,82,.3)"}} onClick={()=>removeRep(r.sector_id,r.sector_name)}>Remove</button>
+        </div>)}
+      </div>}
+
+      {isOwnProfile&&repFor.length>0&&<div className="card" style={{marginBottom:14}}>
+        <div className="ctitle">I Am Representing</div>
+        <div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)",marginBottom:10}}>You are representing {repFor.length} citizen{repFor.length!==1?"s":""} in the following sectors. You must pass the comprehension test once per proposal to vote on their behalf.</div>
+        {[...new Set(repFor.map(r=>r.sector_name))].map(sn=>{
+          const citizens=repFor.filter(r=>r.sector_name===sn);
+          return<div key={sn} style={{padding:"10px 0",borderBottom:"1px solid rgba(26,51,85,.4)"}}>
+            <div style={{fontSize:13,color:"var(--cream)",marginBottom:4}}>{sn}</div>
+            <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+              {citizens.map(r=><span key={r.citizen_id} style={{fontFamily:"var(--fmono)",fontSize:10,padding:"2px 8px",background:"rgba(74,158,255,.1)",color:"var(--blue)",borderRadius:2}}>citizen</span>)}
+            </div>
+          </div>;
+        })}
+      </div>}
+      {isOwnProfile&&<div className="two-col" style={{marginBottom:14}}>
+        <div className="stat-card"><div className="stat-val">${USER.taxPaid.toLocaleString()}</div><div className="stat-lbl">2026 TAX CONTRIBUTION</div></div>
+        <div className="stat-card"><div className="stat-val">{voted}</div><div className="stat-lbl">PROPOSALS VOTED</div></div>
+      </div>}
+      {isOwnProfile&&<div className="card" style={{marginBottom:14}}><div className="ctitle">Participation Points by Sector</div><div className="part-grid">{["federal","provincial","municipal"].map(lvl=><div key={lvl} className="part-card"><div className="part-lvl">{lvl.toUpperCase()}</div>{SECTORS[lvl].critical.slice(0,2).map(s=><div key={s.id} className="part-row"><span className="part-nm">{s.name}</span><span className="part-pts">{s.pct}pts</span></div>)}{SECTORS[lvl].flexible.filter(s=>savedAlloc[lvl][s.id]>0).map(s=><div key={s.id} className="part-row"><span className="part-nm" style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:6,height:6,borderRadius:"50%",background:s.color,display:"inline-block",flexShrink:0}}/>{s.name.length>17?s.name.slice(0,17)+"…":s.name}</span><span className="part-pts">{savedAlloc[lvl][s.id]}pts</span></div>)}</div>)}</div></div>}
+      {myProps.length>0&&<div className="card" style={{marginBottom:14}}><div className="ctitle">Proposals Filed</div><div className="prop-list">{myProps.map(p=><PCard key={p.id} p={p}/>)}</div></div>}
+      {(()=>{
+        const userComments=Object.entries(discussions).flatMap(([propId,comments])=>
+          comments.filter(c=>c.author===displayUsername).map(c=>({...c,proposalId:propId}))
+        ).sort((a,b)=>b.id-a.id);
+        if(userComments.length===0)return null;
+        return<div className="card" style={{marginBottom:14}}>
+          <div className="ctitle">Comment History</div>
+          {userComments.map(c=>{
+            const relProp=proposals.find(p=>p.id===c.proposalId);
+            return<div key={c.id} style={{padding:"12px 0",borderBottom:"1px solid rgba(26,51,85,.4)",cursor:relProp?"pointer":"default"}}
+              onClick={()=>{if(relProp){openProp(relProp);setHighlightedComment(c.id);setView("proposal");}}}>
+              <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)",marginBottom:4,display:"flex",gap:12}}>
+                <span style={{color:relProp?"var(--blue)":"var(--text-dim)"}}>{relProp?relProp.title:"Unknown Proposal"}</span>
+                <span>{c.ts}</span>
+                {c.parentId&&<span style={{color:"var(--gold)"}}>↩ reply</span>}
+              </div>
+              <div style={{fontSize:13,color:"var(--cream-dim)",lineHeight:1.6}}>{c.text.length>120?c.text.slice(0,120)+"…":c.text}</div>
+            </div>;
+          })}
+        </div>;
+      })()}
+      <div className="card"><div className="ctitle">Civic Ledger History</div>
+        {userLedger.length===0?<div style={{fontFamily:"var(--fmono)",fontSize:12,color:"var(--text-dim)"}}>No civic activity recorded yet.</div>
+        :<div style={{overflowX:"auto"}}><table className="ledger-tbl"><thead><tr><th>TYPE</th><th>ACTION</th><th>TARGET</th><th>SECTOR</th><th>TIME</th><th>WT</th></tr></thead><tbody>{userLedger.map(e=>{
+          const relatedProp=proposals.find(p=>p.title===e.target);
+          return<tr key={e.id} style={{cursor:relatedProp?"pointer":"default"}} onClick={()=>{if(relatedProp){openProp(relatedProp);setView("proposal");}}}>
+            <td><span className={`ltype lt-${e.type}`}>{e.type}</span></td>
+            <td>{e.action}</td>
+            <td style={{maxWidth:160,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",color:relatedProp?"var(--cream)":"var(--cream-dim)"}}>{e.target}</td>
+            <td style={{color:"var(--text-dim)"}}>{e.sector}</td>
+            <td style={{color:"var(--text-dim)",whiteSpace:"nowrap"}}>{e.ts}</td>
+            <td style={{color:"var(--blue)"}}>{e.pts}</td>
+          </tr>;
+        })}</tbody></table></div>}
+      </div>
     </div>;
   };
 
@@ -628,30 +1081,85 @@ export default function DDTAP({ session }){
           <span className="topbar-meta">May 13, 2026 · {USER.municipality}, {USER.province}</span>
         </div>
         {view==="dashboard"&&<Dashboard/>}
-        {view==="allocate"&&<Allocation/>}
+        {view==="allocate"&&renderAllocation()}
         {view==="proposals"&&<Proposals/>}
-        {view==="proposal"&&<ProposalDetail/>}
+        {view==="proposal"&&renderProposalDetail()}
         {view==="ledger"&&<Ledger/>}
         {view==="profile"&&<Profile/>}
         {view==="about"&&<About/>}
       </main>
       <nav className="bottom-nav"><div className="bnav-items">{navItems.map(n=><button key={n.id} className={`bnav-item ${isActive(n.id)?"active":""}`} onClick={()=>navTo(n.id)}><span className="bnav-icon">{n.icon}</span>{n.label}</button>)}</div></nav>
 
-      {showCreate&&<div className="modal-ov" onClick={e=>e.target===e.currentTarget&&setShowCreate(false)}><div className="modal">
-        <div className="modal-title">Submit a Proposal</div>
-        <div className="modal-sub">Only citizens with tax allocated to the target sector may submit proposals. Proposals enter a 3-month public deliberation phase before voting opens.</div>
-        <div className="fgrp"><label className="flbl">PROPOSAL TITLE</label><input className="finput" placeholder="A clear, specific, actionable title…" value={newProp.title} onChange={e=>setNewProp(p=>({...p,title:e.target.value}))}/></div>
-        <div className="fgrp"><label className="flbl">TARGET SECTOR</label>
-          <select className="finput fsel" value={newProp.sectorId} onChange={e=>setNewProp(p=>({...p,sectorId:e.target.value}))}>
-            <optgroup label="Federal">{SECTORS.federal.flexible.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
-            <optgroup label="Provincial (Alberta)">{SECTORS.provincial.flexible.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
-            <optgroup label="Municipal (Edmonton)">{SECTORS.municipal.flexible.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
+      {showCreate&&<div className="modal-ov" onClick={e=>e.target===e.currentTarget&&(setShowCreate(false),setCreateStep(1))}><div className="modal" style={{maxWidth:createStep===2?"680px":"540px"}}>
+        <div className="modal-title">{createStep===1?"Submit a Proposal":"Build the Comprehension Test"}</div>
+        <div className="modal-sub">{createStep===1?"Only citizens with tax allocated to the target sector may submit proposals.":"Voters must answer at least 5 of these 10 questions correctly before they can vote. Write clear, fair questions based on your proposal."}</div>
+
+        {createStep===1&&<>
+          <div className="fgrp"><label className="flbl">PROPOSAL TITLE</label><input className="finput" placeholder="A clear, specific, actionable title…" value={newProp.title} onChange={e=>setNewProp(p=>({...p,title:e.target.value}))}/></div>
+          <div className="fgrp"><label className="flbl">TARGET SECTOR</label>
+            <select className="finput fsel" value={newProp.sectorId} onChange={e=>setNewProp(p=>({...p,sectorId:e.target.value}))}>
+              <optgroup label="Federal">{SECTORS.federal.flexible.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
+              <optgroup label="Provincial (Alberta)">{SECTORS.provincial.flexible.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
+              <optgroup label="Municipal (Edmonton)">{SECTORS.municipal.flexible.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
+            </select>
+            {(()=>{const lvl=newProp.sectorId.startsWith("ff")?"federal":newProp.sectorId.startsWith("pf")?"provincial":"municipal";const ua=savedAlloc[lvl]?.[newProp.sectorId]||0;return<div style={{marginTop:6,fontFamily:"var(--fmono)",fontSize:10,color:ua>0?"var(--green)":"var(--red)"}}>{ua>0?`✓ You have ${ua}% allocated — eligible to propose`:"⚠ You have 0% allocated here. Allocate taxes first."}</div>;})()}
+          </div>
+          <div className="fgrp"><label className="flbl">PROPOSAL SUMMARY</label><textarea className="finput ftarea" placeholder="Describe the proposal clearly. Voters must pass a comprehension test before voting…" value={newProp.summary} onChange={e=>setNewProp(p=>({...p,summary:e.target.value}))}/></div>
+          <div className="modal-acts"><button className="btn-g" onClick={()=>setShowCreate(false)}>Cancel</button>
+            {(()=>{const lvl=newProp.sectorId.startsWith("ff")?"federal":newProp.sectorId.startsWith("pf")?"provincial":"municipal";const ua=savedAlloc[lvl]?.[newProp.sectorId]||0;return<button className="btn-p" disabled={!newProp.title||!newProp.summary||ua===0} onClick={()=>setCreateStep(2)}>Next: Build Quiz →</button>;})()}
+          </div>
+        </>}
+
+        {createStep===2&&<>
+          <div style={{maxHeight:"60vh",overflowY:"auto",paddingRight:4}}>
+            {quizQs.map((q,i)=>(
+              <div key={i} style={{marginBottom:24,padding:"16px",background:"rgba(0,0,0,.2)",borderRadius:3,border:"1px solid var(--border)"}}>
+                <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--gold)",marginBottom:8}}>QUESTION {i+1} OF 10</div>
+                <input className="finput" style={{marginBottom:10}} placeholder={`Question ${i+1}…`} value={q.q} onChange={e=>updateQ(i,"q",e.target.value)}/>
+                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:8}}>
+                  {q.opts.map((opt,j)=>(
+                    <div key={j} style={{display:"flex",gap:6,alignItems:"center"}}>
+                      <input type="radio" name={`correct-${i}`} checked={q.a===j} onChange={()=>updateQ(i,"a",j)} style={{accentColor:"var(--gold)",flexShrink:0,width:14,height:14,cursor:"pointer"}}/>
+                      <input className="finput" style={{marginBottom:0,flex:1}} placeholder={`Option ${j+1}…`} value={opt} onChange={e=>updateOpt(i,j,e.target.value)}/>
+                    </div>
+                  ))}
+                </div>
+                <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)"}}>● = correct answer</div>
+              </div>
+            ))}
+          </div>
+          <div className="modal-acts">
+            <button className="btn-g" onClick={()=>setCreateStep(1)}>← Back</button>
+            <button className="btn-p" disabled={!quizValid} onClick={createProposal} style={{opacity:quizValid?1:.5}}>
+              {quizValid?"Submit Proposal to Ledger":"Fill all questions & options first"}
+            </button>
+          </div>
+        </>}
+      </div></div>}
+
+      {showAssignRep&&<div className="modal-ov" onClick={e=>e.target===e.currentTarget&&setShowAssignRep(false)}><div className="modal">
+        <div className="modal-title">Assign a Representative</div>
+        <div className="modal-sub">Choose a sector and a citizen to represent you. They can vote on your behalf but cannot be compensated. You can override or remove them at any time.</div>
+        <div className="fgrp"><label className="flbl">SECTOR</label>
+          <select className="finput fsel" value={assignRepSector?.id||""} onChange={e=>{
+            const all=[...SECTORS.federal.flexible,...SECTORS.provincial.flexible,...SECTORS.municipal.flexible];
+            const sec=all.find(s=>s.id===e.target.value);
+            const lvl=sec?.id.startsWith("ff")?"federal":sec?.id.startsWith("pf")?"provincial":"municipal";
+            setAssignRepSector(sec?{...sec,level:lvl}:null);
+          }}>
+            <option value="">Select a sector…</option>
+            <optgroup label="Federal">{SECTORS.federal.flexible.filter(s=>savedAlloc.federal[s.id]>0).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
+            <optgroup label="Provincial">{SECTORS.provincial.flexible.filter(s=>savedAlloc.provincial[s.id]>0).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
+            <optgroup label="Municipal">{SECTORS.municipal.flexible.filter(s=>savedAlloc.municipal[s.id]>0).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
           </select>
-          {(()=>{const lvl=newProp.sectorId.startsWith("ff")?"federal":newProp.sectorId.startsWith("pf")?"provincial":"municipal";const ua=savedAlloc[lvl]?.[newProp.sectorId]||0;return<div style={{marginTop:6,fontFamily:"var(--fmono)",fontSize:10,color:ua>0?"var(--green)":"var(--red)"}}>{ua>0?`✓ You have ${ua}% allocated — eligible to propose`:"⚠ You have 0% allocated here. Allocate taxes first."}</div>;})()}
         </div>
-        <div className="fgrp"><label className="flbl">PROPOSAL SUMMARY</label><textarea className="finput ftarea" placeholder="Describe the proposal clearly. Citizens must pass a comprehension test before voting…" value={newProp.summary} onChange={e=>setNewProp(p=>({...p,summary:e.target.value}))}/></div>
-        <div className="modal-acts"><button className="btn-g" onClick={()=>setShowCreate(false)}>Cancel</button>
-          {(()=>{const lvl=newProp.sectorId.startsWith("ff")?"federal":newProp.sectorId.startsWith("pf")?"provincial":"municipal";const ua=savedAlloc[lvl]?.[newProp.sectorId]||0;return<button className="btn-p" disabled={!newProp.title||!newProp.summary||ua===0} onClick={createProposal}>Submit to Ledger</button>;})()}
+        <div className="fgrp"><label className="flbl">REPRESENTATIVE USERNAME</label>
+          <input className="finput" placeholder="their_username" value={assignRepUsername} onChange={e=>setAssignRepUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,""))}/>
+          <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)",marginTop:6}}>They must have a DDTAP account. Compensation is prohibited by law.</div>
+        </div>
+        <div className="modal-acts">
+          <button className="btn-g" onClick={()=>{setShowAssignRep(false);setAssignRepUsername("");}}>Cancel</button>
+          <button className="btn-p" disabled={!assignRepSector||!assignRepUsername} onClick={()=>assignRep(assignRepSector.id,assignRepSector.name,assignRepSector.level,assignRepUsername)}>Assign Rep</button>
         </div>
       </div></div>}
 
