@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "./supabase";
-import CANADA_MUNICIPALITIES from "./canadaMunicipalities.js";
+import CANADA_MUNICIPALITIES from "./canadaMunicipalities";
 
 const validatePassword=(pw)=>{
   const e=[];
@@ -190,10 +190,14 @@ export default function Auth({onLogin}){
       <label style={S.label}>PASSWORD</label>
       <input style={S.input} type="password" placeholder="••••••••" value={password} onChange={e=>{setPassword(e.target.value);setPwErrors([]);}}/>
       <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,marginBottom:16,lineHeight:1.9,color:"#8e9ab0"}}>
-        {["At least 8 characters","One uppercase letter","One number","One special character"].map(r=>{
-          const fail=pwErrors.includes(r);
-          return<div key={r} style={{color:fail?"#e05252":password.length>0?"#4cae7f":"#8e9ab0"}}>{fail?"✗":password.length>0?"✓":"·"} {r}</div>;
-        })}
+        {[
+          {label:"At least 8 characters",met:password.length>=8},
+          {label:"One uppercase letter",met:/[A-Z]/.test(password)},
+          {label:"One number",met:/[0-9]/.test(password)},
+          {label:"One special character",met:/[^A-Za-z0-9]/.test(password)},
+        ].map(c=><div key={c.label} style={{color:password.length===0?"#8e9ab0":c.met?"#4cae7f":"#e05252"}}>
+          {password.length===0?"·":c.met?"✓":"✗"} {c.label}
+        </div>)}
       </div>
       <button style={{...S.btn,opacity:(!username||!email||!password||!municipality)?.5:1}} onClick={goToAllocation} disabled={!username||!email||!password||!municipality}>
         Next: Allocate Your Taxes →
