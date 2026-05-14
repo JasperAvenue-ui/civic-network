@@ -614,7 +614,7 @@ export default function DDTAP({ session, onLogout }){
     const sec=all3.find(s=>s.id===newProp.sectorId);
     const lvl=sec.id.startsWith("ff")?"federal":sec.id.startsWith("pf")?"provincial":"municipal";
     const questions=quizQs.map(q=>({q:q.q,opts:q.opts,a:q.a}));
-    setProposals(prev=>[{id:`p${Date.now()}`,title:newProp.title,sector:lvl,sectorName:sec.name,sectorId:sec.id,status:"pending",author:USER.username,created:new Date().toISOString().slice(0,10),deadline:null,summary:newProp.summary,forVotes:0,againstVotes:0,totalEligible:0,quorumPct:0,userVoted:null,userPassedTest:false,questions,shelveReason:null,pendingAuthorReview:false},...prev]);
+    setProposals(prev=>[{id:`p${Date.now()}`,title:newProp.title,sector:lvl,sectorName:sec.name,sectorId:sec.id,status:"pending",author:USER.username,created:new Date().toISOString().slice(0,10),deadline:null,summary:newProp.summary,forVotes:0,againstVotes:0,totalEligible:0,quorumPct:0,userVoted:null,userPassedTest:false,questions,shelveReason:null,pendingAuthorReview:false,province:USER.province,municipality:USER.municipality},...prev]);
     setShowCreate(false);
     setNewProp({title:"",sectorId:"ff_health",summary:""});
     setQuizQs(Array.from({length:10},(_,i)=>({id:i,q:"",opts:["","","",""],a:0})));
@@ -826,8 +826,8 @@ export default function DDTAP({ session, onLogout }){
     ];
 
     if(selectedSector){
-      const active=proposals.filter(p=>p.sectorId===selectedSector.id&&(p.status==="voting"));
-      const past=proposals.filter(p=>p.sectorId===selectedSector.id&&(p.status==="passed"||p.status==="failed"));
+      const active=proposals.filter(p=>p.sectorId===selectedSector.id&&(p.status==="voting")&&(selectedSector.level==="federal"||(selectedSector.level==="provincial"&&p.province===USER.province)||(selectedSector.level==="municipal"&&p.municipality===USER.municipality)));
+      const past=proposals.filter(p=>p.sectorId===selectedSector.id&&(p.status==="passed"||p.status==="failed")&&(selectedSector.level==="federal"||(selectedSector.level==="provincial"&&p.province===USER.province)||(selectedSector.level==="municipal"&&p.municipality===USER.municipality)));
       const isCritSector=SECTORS[selectedSector.level]?.critical.some(s=>s.id===selectedSector.id);
       const ua=isCritSector?(selectedSector.pct||10):savedAlloc[selectedSector.level]?.[selectedSector.id]||0;
       return<div className="content">
@@ -915,8 +915,8 @@ export default function DDTAP({ session, onLogout }){
         <button className="btn-p" onClick={()=>setShowCreate(true)}>+ New Proposal</button>
       </div>
       <LevelSection level="federal" label="Federal"/>
-      <LevelSection level="provincial" label="Provincial"/>
-      <LevelSection level="municipal" label="Municipal"/>
+      {USER.province&&<LevelSection level="provincial" label={`Provincial · ${USER.province}`}/>}
+      {USER.municipality&&<LevelSection level="municipal" label={`Municipal · ${USER.municipality}`}/>}
     </div>;
   };
 
@@ -981,7 +981,8 @@ export default function DDTAP({ session, onLogout }){
       </div>;
     }
     const ua=savedAlloc[p.sector]?.[p.sectorId]||0;
-    const canVote=p.status==="voting"&&ua>0&&p.userPassedTest&&p.questions.length>0;
+    const inJurisdiction=p.sector==="federal"||(p.sector==="provincial"&&p.province===USER.province)||(p.sector==="municipal"&&p.municipality===USER.municipality);
+    const canVote=p.status==="voting"&&ua>0&&p.userPassedTest&&p.questions.length>0&&inJurisdiction;
     const tot=p.forVotes+p.againstVotes,fp=tot>0?Math.round((p.forVotes/tot)*100):0;
     const hasQ=p.questions.length>0;
     const tabs=["overview",...(hasQ&&!p.userPassedTest&&p.status==="voting"?["test"]:[]),"vote"];

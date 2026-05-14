@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "./supabase";
+import CANADA_MUNICIPALITIES from "./canadaMunicipalities.js";
 
 const validatePassword=(pw)=>{
   const e=[];
@@ -63,6 +64,8 @@ const S={
   infoBox:{background:"rgba(200,168,75,.06)",border:"1px solid rgba(200,168,75,.2)",borderRadius:3,padding:"12px 16px",fontSize:13,color:"#a89e8a",lineHeight:1.75,marginBottom:20},
 };
 
+const PROVINCES=["Alberta","British Columbia","Manitoba","New Brunswick","Newfoundland and Labrador","Nova Scotia","Ontario","Prince Edward Island","Quebec","Saskatchewan","Northwest Territories","Nunavut","Yukon"];
+
 export default function Auth({onLogin}){
   const[mode,setMode]=useState("login");
   const[step,setStep]=useState(1);
@@ -75,8 +78,24 @@ export default function Auth({onLogin}){
   const[pwErrors,setPwErrors]=useState([]);
   const[govLevel,setGovLevel]=useState("federal");
   const[alloc,setAlloc]=useState(INIT_ALLOC);
+  const[province,setProvince]=useState("Alberta");
+  const[municipality,setMunicipality]=useState("");
+  const[municSearch,setMunicSearch]=useState("");
+  const[municResults,setMunicResults]=useState([]);
+  const[municSelected,setMunicSelected]=useState(false);
 
   const flexTotal=(lvl)=>Object.values(alloc[lvl]).reduce((a,b)=>a+b,0);
+
+  const searchMunic=(q)=>{
+    setMunicSearch(q);setMunicSelected(false);setMunicipality("");
+    if(q.length<2){setMunicResults([]);return;}
+    const list=CANADA_MUNICIPALITIES[province]||[];
+    setMunicResults(list.filter(m=>m.toLowerCase().includes(q.toLowerCase())).slice(0,8));
+  };
+
+  const selectMunic=(name)=>{
+    setMunicipality(name);setMunicSearch(name);setMunicSelected(true);setMunicResults([]);
+  };
 
   const updateAlloc=(lvl,id,val)=>{
     const others={...alloc[lvl]};delete others[id];
@@ -105,7 +124,7 @@ export default function Auth({onLogin}){
     const{data,error}=await supabase.auth.signUp({email:sanitize(email),password});
     if(error){setError(error.message);setLoading(false);return;}
     if(data.user){
-      await supabase.from("users").insert({id:data.user.id,username:availableUsername,full_name:availableUsername,province:"Alberta",municipality:"Edmonton",tax_paid:12400});
+      await supabase.from("users").insert({id:data.user.id,username:availableUsername,full_name:availableUsername,province,municipality,tax_paid:12400});
       const rows=[];
       ["federal","provincial","municipal"].forEach(lvl=>{
         SECTORS[lvl].flexible.forEach(s=>{
@@ -118,7 +137,9 @@ export default function Auth({onLogin}){
     setLoading(false);
   };
 
-  const levelLabel={federal:"Federal",provincial:"Provincial (Alberta)",municipal:"Municipal (Edmonton)"};
+  const[showConfirm,setShowConfirm]=useState(false);
+  const levelLabel={federal:"Federal",provincial:`Provincial · ${province}`,municipal:`Municipal · ${municipality}`};
+  const levelOrder=["federal","provincial","municipal"];
 
   if(mode==="login")return(
     <div style={S.wrap}><div style={S.box}>
@@ -139,7 +160,6 @@ export default function Auth({onLogin}){
       <div style={S.logo}>The Civic Network</div>
       <div style={S.sub}>DDTAP · PILOT v0.1 · CREATE ACCOUNT · STEP 1 OF 2</div>
       {error&&<div style={S.error}>{error}</div>}
-      {message&&<div style={S.success}>{message}</div>}
       <div style={S.infoBox}>
         <strong style={{color:"#e8dfc8"}}>Welcome to The Civic Network.</strong> Your identity is public. Your username, voting history, and proposals are visible to all citizens. Your legal name is only accessible to the legal department.
       </div>
@@ -147,6 +167,26 @@ export default function Auth({onLogin}){
       <input style={S.input} placeholder="your_username" value={username} onChange={e=>setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,""))}/>
       <label style={S.label}>EMAIL</label>
       <input style={S.input} type="email" placeholder="you@example.com" value={email} onChange={e=>setEmail(e.target.value)}/>
+      <label style={S.label}>PROVINCE</label>
+      <select style={{...S.input,appearance:"none",cursor:"pointer"}} value={province} onChange={e=>{setProvince(e.target.value);setMunicSearch("");setMunicipality("");setMunicResults([]);}}>
+        {PROVINCES.map(p=><option key={p} value={p}>{p}</option>)}
+      </select>
+      <label style={S.label}>MUNICIPALITY</label>
+      <div style={{position:"relative",marginBottom:14}}>
+        <input style={{...S.input,marginBottom:0,borderColor:municSelected?"#4cae7f":"#1a3355"}}
+          placeholder="Start typing your city or town..."
+          value={municSearch}
+          onChange={e=>searchMunic(e.target.value)}/>
+        {municResults.length>0&&<div style={{position:"absolute",top:"100%",left:0,right:0,background:"#0d1b2e",border:"1px solid #1a3355",borderRadius:2,zIndex:100,maxHeight:200,overflowY:"auto"}}>
+          {municResults.map((name,i)=><div key={i} style={{padding:"9px 14px",cursor:"pointer",fontFamily:"'JetBrains Mono',monospace",fontSize:12,color:"#e8dfc8",borderBottom:"1px solid #1a3355"}}
+            onMouseDown={()=>selectMunic(name)}
+            onMouseEnter={e=>e.currentTarget.style.background="#122240"}
+            onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+            {name}
+          </div>)}
+        </div>}
+        {municSelected&&<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"#4cae7f",marginTop:4}}>✓ {municipality}</div>}
+      </div>
       <label style={S.label}>PASSWORD</label>
       <input style={S.input} type="password" placeholder="••••••••" value={password} onChange={e=>{setPassword(e.target.value);setPwErrors([]);}}/>
       <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,marginBottom:16,lineHeight:1.9,color:"#8e9ab0"}}>
@@ -155,7 +195,7 @@ export default function Auth({onLogin}){
           return<div key={r} style={{color:fail?"#e05252":password.length>0?"#4cae7f":"#8e9ab0"}}>{fail?"✗":password.length>0?"✓":"·"} {r}</div>;
         })}
       </div>
-      <button style={{...S.btn,opacity:(!username||!email||!password)?.5:1}} onClick={goToAllocation} disabled={!username||!email||!password}>
+      <button style={{...S.btn,opacity:(!username||!email||!password||!municipality)?.5:1}} onClick={goToAllocation} disabled={!username||!email||!password||!municipality}>
         Next: Allocate Your Taxes →
       </button>
       <div style={S.toggle}>Already have an account?<span style={S.link} onClick={()=>{setMode("login");setError(null);}}>Log in</span></div>
@@ -164,21 +204,23 @@ export default function Auth({onLogin}){
 
   const secs=SECTORS[govLevel];
   const fu=flexTotal(govLevel),r=70-fu;
+  const currentIdx=levelOrder.indexOf(govLevel);
+  const isLast=currentIdx===2;
 
   return(
     <div style={S.wrapTop}><div style={S.boxWide}>
       <div style={S.logo}>The Civic Network</div>
       <div style={S.sub}>DDTAP · PILOT v0.1 · TAX ALLOCATION · STEP 2 OF 2</div>
       <div style={S.infoBox}>
-        <strong style={{color:"#e8dfc8"}}>How your taxes shape your vote.</strong> 30% goes automatically to Critical Infrastructure. You control the remaining 70% — every percentage point you put into a sector gives you one participation point there. Those points are your vote weight on proposals. You cannot change this year's allocation after signing up, but you can plan next year's any time before the tax deadline.
+        <strong style={{color:"#e8dfc8"}}>How your taxes shape your vote.</strong> 30% goes automatically to Critical Infrastructure. You control the remaining 70% — every percentage point you put into a sector gives you one participation point there. Those points are your vote weight on proposals.
       </div>
 
       <div style={{display:"flex",gap:0,marginBottom:20,border:"1px solid #1a3355",borderRadius:3,overflow:"hidden"}}>
-        {["federal","provincial","municipal"].map((l,i)=>{
-          const used=flexTotal(l)>0,active=govLevel===l;
-          return<button key={l} style={{flex:1,padding:"9px",textAlign:"center",cursor:"pointer",fontFamily:"'JetBrains Mono',monospace",fontSize:11,letterSpacing:".05em",color:active?"#c8a84b":used?"#4cae7f":"#8e9ab0",background:active?"rgba(200,168,75,.1)":"#0d1b2e",border:"none",borderRight:i<2?"1px solid #1a3355":"none",transition:"all .15s"}}
-            onClick={()=>setGovLevel(l)}>
-            {l.toUpperCase()}{used&&!active?" ✓":""}
+        {levelOrder.map((l,i)=>{
+          const used=flexTotal(l)>0,active=govLevel===l,done=i<currentIdx;
+          return<button key={l} style={{flex:1,padding:"9px",textAlign:"center",cursor:"pointer",fontFamily:"'JetBrains Mono',monospace",fontSize:11,letterSpacing:".05em",color:active?"#c8a84b":done?"#4cae7f":"#8e9ab0",background:active?"rgba(200,168,75,.1)":"#0d1b2e",border:"none",borderRight:i<2?"1px solid #1a3355":"none",transition:"all .15s"}}
+            onClick={()=>i<=currentIdx&&setGovLevel(l)}>
+            {l==="federal"?"Federal":l==="provincial"?province:municipality}{done?" ✓":""}
           </button>;
         })}
       </div>
@@ -227,17 +269,56 @@ export default function Auth({onLogin}){
         </div>;
       })}
 
-      {r>0&&<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"#c8a84b",marginBottom:16}}>⚠ {r}% unallocated in {levelLabel[govLevel]} — auto-distributes to Critical Infrastructure at tax deadline</div>}
+      {r>0&&<div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"#c8a84b",marginBottom:16}}>⚠ {r}% unallocated — auto-distributes to Critical Infrastructure at tax deadline</div>}
 
       {error&&<div style={S.error}>{error}</div>}
-      {message&&<div style={S.success}>{message}</div>}
 
       <div style={{display:"flex",gap:10,marginTop:8}}>
-        <button style={{...S.btnSmall}} onClick={()=>setStep(1)}>← Back</button>
-        <button style={{...S.btn,marginTop:0,flex:1,opacity:loading?.5:1}} onClick={submitSignup} disabled={loading}>
-          {loading?"Creating account...":"Create Account & Enter The Civic Network"}
-        </button>
+        <button style={{...S.btnSmall}} onClick={()=>currentIdx===0?setStep(1):setGovLevel(levelOrder[currentIdx-1])}>← Back</button>
+        {!isLast&&<button style={{...S.btn,marginTop:0,flex:1}} onClick={()=>setGovLevel(levelOrder[currentIdx+1])}>
+          Next: {currentIdx===0?province:municipality} →
+        </button>}
+        {isLast&&<button style={{...S.btn,marginTop:0,flex:1}} onClick={()=>setShowConfirm(true)}>
+          Review & Submit →
+        </button>}
       </div>
+
+      {showConfirm&&<div style={{position:"fixed",inset:0,background:"rgba(7,15,28,.92)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:400,padding:24}}>
+        <div style={{background:"#0d1b2e",border:"1px solid #243f60",borderRadius:4,padding:32,width:"100%",maxWidth:520,maxHeight:"90vh",overflowY:"auto"}}>
+          <div style={{fontFamily:"'Playfair Display',Georgia,serif",fontSize:20,fontWeight:700,color:"#e8dfc8",marginBottom:6}}>Confirm Your Allocation</div>
+          <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:11,color:"#8e9ab0",marginBottom:22}}>Please review your details before creating your account. This allocation cannot be changed until next year.</div>
+
+          <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"#c8a84b",letterSpacing:".07em",marginBottom:6}}>YOUR LOCATION</div>
+          <div style={{background:"rgba(0,0,0,.3)",borderRadius:3,padding:"10px 14px",marginBottom:18,fontSize:13,color:"#e8dfc8"}}>
+            <div><span style={{color:"#8e9ab0"}}>Province: </span>{province}</div>
+            <div style={{marginTop:4}}><span style={{color:"#8e9ab0"}}>Municipality: </span>{municipality}</div>
+          </div>
+
+          {levelOrder.map(lvl=>{
+            const sectors=SECTORS[lvl].flexible.filter(s=>(alloc[lvl][s.id]||0)>0);
+            const total=flexTotal(lvl);
+            const label=lvl==="federal"?"Federal":lvl==="provincial"?province:municipality;
+            return<div key={lvl} style={{marginBottom:16}}>
+              <div style={{fontFamily:"'JetBrains Mono',monospace",fontSize:10,color:"#c8a84b",letterSpacing:".07em",marginBottom:6}}>{label.toUpperCase()} · {total}/70% ALLOCATED</div>
+              <div style={{background:"rgba(0,0,0,.3)",borderRadius:3,padding:"10px 14px"}}>
+                {sectors.length===0&&<div style={{fontSize:12,color:"#8e9ab0"}}>No allocation — all unallocated % goes to Critical Infrastructure</div>}
+                {sectors.map(s=><div key={s.id} style={{display:"flex",justifyContent:"space-between",fontSize:12,color:"#e8dfc8",marginBottom:4}}>
+                  <span style={{color:"#a89e8a"}}>{s.name}</span>
+                  <span style={{fontFamily:"'JetBrains Mono',monospace",color:"#c8a84b"}}>{alloc[lvl][s.id]}%</span>
+                </div>)}
+              </div>
+            </div>;
+          })}
+
+          <div style={{display:"flex",gap:10,marginTop:22}}>
+            <button style={{...S.btnSmall,flex:1}} onClick={()=>setShowConfirm(false)}>← Go Back</button>
+            <button style={{...S.btn,marginTop:0,flex:2,opacity:loading?.5:1}} onClick={submitSignup} disabled={loading}>
+              {loading?"Creating account...":"Confirm & Enter The Civic Network"}
+            </button>
+          </div>
+        </div>
+      </div>}
+
       <div style={{...S.toggle,marginTop:14}}>You can plan your 2027 allocation any time before next year's tax deadline.</div>
     </div></div>
   );
