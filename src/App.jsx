@@ -365,6 +365,7 @@ export default function DDTAP({ session, onLogout }){
   const[oversightFlags,setOversightFlags]=useState([]);
   const[showNotifications,setShowNotifications]=useState(false);
   const[aboutTab,setAboutTab]=useState("ddtap");
+  const[modSelectedId,setModSelectedId]=useState(null);
   const[authorEditDraft,setAuthorEditDraft]=useState(null);
   const[showAuthorConfirm,setShowAuthorConfirm]=useState(false);
   const[modEditDraft,setModEditDraft]=useState(null);
