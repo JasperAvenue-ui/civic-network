@@ -53,7 +53,15 @@ body{background:var(--bg);color:var(--cream);font-family:var(--fbody);font-size:
 .prop-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px}
 .prop-title{font-family:var(--fdisplay);font-size:15px;font-weight:600;line-height:1.35}
 .badge{font-family:var(--fmono);font-size:10px;padding:2px 7px;border-radius:2px;text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;flex-shrink:0}
-.b-voting{background:rgba(74,158,255,.15);color:var(--blue);border:1px solid rgba(74,158,255,.3)}
+.b-pending{background:rgba(200,168,75,.15);color:var(--gold);border:1px solid rgba(200,168,75,.3)}
+.b-shelved{background:rgba(142,154,176,.15);color:var(--text-dim);border:1px solid rgba(142,154,176,.3)}
+.notif-badge{position:absolute;top:-4px;right:-4px;width:16px;height:16px;background:var(--red);border-radius:50%;font-size:9px;font-family:var(--fmono);color:#fff;display:flex;align-items:center;justify-content:center}
+.mod-card{background:var(--bg-card);border:1px solid var(--border);border-left:3px solid var(--gold);border-radius:3px;padding:16px 20px;margin-bottom:10px;cursor:pointer;transition:all .15s}
+.mod-card:hover{background:var(--bg-hover)}
+.version-item{padding:12px;background:rgba(0,0,0,.2);border-radius:3px;border-left:2px solid var(--border);margin-bottom:8px;font-size:12px}
+.version-num{font-family:var(--fmono);font-size:10px;color:var(--gold);margin-bottom:4px}
+.flag-card{background:var(--bg-card);border:1px solid var(--border);border-radius:3px;padding:18px;margin-bottom:10px}
+.flag-card.urgent{border-left:3px solid var(--red)}
 .b-deliberation{background:rgba(200,168,75,.15);color:var(--gold);border:1px solid rgba(200,168,75,.3)}
 .b-passed{background:rgba(76,174,127,.15);color:var(--green);border:1px solid rgba(76,174,127,.3)}
 .b-failed{background:rgba(224,82,82,.15);color:var(--red);border:1px solid rgba(224,82,82,.3)}
@@ -332,7 +340,7 @@ const INIT_LEDGER=[
   {id:"L0035",type:"PASSED",actor:"SYSTEM",action:"Proposal PASSED",target:"Edmonton Active Transportation Network",sector:"Municipal · Local Roads",ts:"2026-04-10 00:00",pts:"—"},
 ];
 
-export default function DDTAP({ session }){
+export default function DDTAP({ session, onLogout }){
   const [userProfile, setUserProfile] = useState(null);
 
   useEffect(() => {
@@ -366,7 +374,8 @@ export default function DDTAP({ session }){
     taxPaid: userProfile.tax_paid,
     province: userProfile.province,
     municipality: userProfile.municipality,
-  } : { name:"...", username:"...", taxPaid:0, province:"", municipality:"" };
+    role: userProfile.role || 'citizen',
+  } : { name:"...", username:"...", taxPaid:0, province:"", municipality:"", role:"citizen" };
 
   const[view,setView]=useState("dashboard");
   const[govLevel,setGovLevel]=useState("federal");
@@ -404,7 +413,19 @@ export default function DDTAP({ session }){
   const[filterSec,setFilterSec]=useState("all");
   const[selectedSector,setSelectedSector]=useState(null);
   const[showPast,setShowPast]=useState(false);
+  const[notifications,setNotifications]=useState([]);
+  const[propVersions,setPropVersions]=useState({}); // {proposalId: [{version, title, summary, questions, edited_by_username, created_at}]}
+  const[oversightFlags,setOversightFlags]=useState([]);
+  const[showNotifications,setShowNotifications]=useState(false);
   const[aboutTab,setAboutTab]=useState("ddtap");
+  const[authorEditDraft,setAuthorEditDraft]=useState(null);
+  const[showAuthorConfirm,setShowAuthorConfirm]=useState(false);
+  const[modEditDraft,setModEditDraft]=useState(null);
+  const[shelveReason,setShelveReason]=useState("");
+  const[showShelveModal,setShowShelveModal]=useState(null);
+  const[flagReason,setFlagReason]=useState("");
+  const[showFlagModal,setShowFlagModal]=useState(null);
+  const[oversightSelectedId,setOversightSelectedId]=useState(null);
   const[sidebarOpen,setSidebarOpen]=useState(false);
   const[viewingProfile,setViewingProfile]=useState(null);
 
@@ -432,6 +453,77 @@ export default function DDTAP({ session }){
     const nid="L"+String(parseInt(ledger[0].id.slice(1))+1).padStart(4,"0");
     setLedger(prev=>[{id:nid,type:"ALLOCATION",actor:USER.username,action:"2027 allocation saved",target:"Federal · Provincial · Municipal",sector:"All Sectors",ts:new Date().toISOString().slice(0,16).replace("T"," "),pts:"—"},...prev]);
     notify("2027 allocation saved to civic ledger ✓");
+  };
+
+  const addNotification=(userId,type,message,proposalId=null)=>{
+    supabase.from("notifications").insert({user_id:userId,type,message,proposal_id:proposalId});
+    if(userId===session?.user?.id) setNotifications(prev=>[{id:Date.now(),type,message,proposal_id:proposalId,read:false,created_at:new Date().toISOString()},...prev]);
+  };
+
+  const saveProposalVersion=(proposal,editedByUsername)=>{
+    const versions=propVersions[proposal.id]||[];
+    const newVersion={version:versions.length+1,title:proposal.title,summary:proposal.summary,questions:proposal.questions,edited_by_username:editedByUsername,created_at:new Date().toISOString().slice(0,16).replace("T"," ")};
+    setPropVersions(prev=>({...prev,[proposal.id]:[...(prev[proposal.id]||[]),newVersion]}));
+  };
+
+  const modApprove=(pid)=>{
+    const p=proposals.find(x=>x.id===pid);
+    if(!p)return;
+    setProposals(prev=>prev.map(x=>x.id===pid?{...x,status:"voting"}:x));
+    const nid="L"+String(parseInt(ledger[0].id.slice(1))+1).padStart(4,"0");
+    setLedger(prev=>[{id:nid,type:"MODERATION",actor:USER.username,action:"Proposal approved",target:p.title,sector:`${p.sector} · ${p.sectorName}`,ts:new Date().toISOString().slice(0,16).replace("T"," "),pts:"—"},...prev]);
+    notify(`"${p.title}" approved and is now live ✓`);
+  };
+
+  const modShelve=(pid,reason)=>{
+    const p=proposals.find(x=>x.id===pid);
+    if(!p)return;
+    setProposals(prev=>prev.map(x=>x.id===pid?{...x,status:"shelved",shelveReason:reason}:x));
+    const nid="L"+String(parseInt(ledger[0].id.slice(1))+1).padStart(4,"0");
+    setLedger(prev=>[{id:nid,type:"MODERATION",actor:USER.username,action:"Proposal shelved",target:p.title,sector:`${p.sector} · ${p.sectorName}`,ts:new Date().toISOString().slice(0,16).replace("T"," "),pts:"—"},...prev]);
+    notify(`"${p.title}" has been shelved`);
+  };
+
+  const modEditProposal=(pid,newTitle,newSummary,newQuestions)=>{
+    const p=proposals.find(x=>x.id===pid);
+    if(!p)return;
+    saveProposalVersion(p,USER.username);
+    setProposals(prev=>prev.map(x=>x.id===pid?{...x,title:newTitle,summary:newSummary,questions:newQuestions,pendingAuthorReview:true}:x));
+    notify("Edits saved. Author has been notified to review.");
+  };
+
+  const authorApprove=(pid,draft)=>{
+    const p=proposals.find(x=>x.id===pid);
+    if(!p)return;
+    saveProposalVersion({...p,...draft},USER.username);
+    setProposals(prev=>prev.map(x=>x.id===pid?{...x,...draft,status:"voting",pendingAuthorReview:false,deadline:new Date(Date.now()+90*86400000).toISOString().slice(0,10)}:x));
+    setAuthorEditDraft(null);
+    setShowAuthorConfirm(false);
+    const nid="L"+String(parseInt(ledger[0].id.slice(1))+1).padStart(4,"0");
+    setLedger(prev=>[{id:nid,type:"PROPOSAL",actor:USER.username,action:"Author approved — proposal now live",target:p.title,sector:`${p.sector} · ${p.sectorName}`,ts:new Date().toISOString().slice(0,16).replace("T"," "),pts:"—"},...prev]);
+    notify("Proposal approved and is now live ✓");
+  };
+
+  const flagToOversight=(pid,reason)=>{
+    const p=proposals.find(x=>x.id===pid);
+    if(!p)return;
+    const flag={id:`f${Date.now()}`,proposal_id:pid,proposal_title:p.title,author_id:session.user.id,author_username:USER.username,reason,status:"pending",deadline:new Date(Date.now()+90*86400000).toISOString().slice(0,10),votes:[],created_at:new Date().toISOString().slice(0,16).replace("T"," ")};
+    setOversightFlags(prev=>[flag,...prev]);
+    notify("Flag submitted to Oversight Committee ✓");
+  };
+
+  const oversightVote=(flagId,decision,reasoning)=>{
+    setOversightFlags(prev=>prev.map(f=>{
+      if(f.id!==flagId)return f;
+      const votes=[...(f.votes||[]),{voter:USER.username,decision,reasoning,ts:new Date().toISOString().slice(0,16).replace("T"," ")}];
+      const status=votes.length>=1?"resolved":"pending";
+      if(status==="resolved"){
+        const reinstate=decision==="reinstate";
+        if(reinstate) setProposals(pp=>pp.map(p=>p.id===f.proposal_id?{...p,status:"voting",shelveReason:null}:p));
+        notify(`Oversight ruled: ${reinstate?"Proposal reinstated":"Shelving upheld"}`);
+      }
+      return{...f,votes,status,outcome:decision};
+    }));
   };
 
   // Load reps from Supabase
@@ -522,7 +614,7 @@ export default function DDTAP({ session }){
     const sec=all3.find(s=>s.id===newProp.sectorId);
     const lvl=sec.id.startsWith("ff")?"federal":sec.id.startsWith("pf")?"provincial":"municipal";
     const questions=quizQs.map(q=>({q:q.q,opts:q.opts,a:q.a}));
-    setProposals(prev=>[{id:`p${Date.now()}`,title:newProp.title,sector:lvl,sectorName:sec.name,sectorId:sec.id,status:"voting",author:USER.username,created:new Date().toISOString().slice(0,10),deadline:new Date(Date.now()+90*86400000).toISOString().slice(0,10),summary:newProp.summary,forVotes:0,againstVotes:0,totalEligible:0,quorumPct:0,userVoted:null,userPassedTest:false,questions},...prev]);
+    setProposals(prev=>[{id:`p${Date.now()}`,title:newProp.title,sector:lvl,sectorName:sec.name,sectorId:sec.id,status:"pending",author:USER.username,created:new Date().toISOString().slice(0,10),deadline:null,summary:newProp.summary,forVotes:0,againstVotes:0,totalEligible:0,quorumPct:0,userVoted:null,userPassedTest:false,questions,shelveReason:null,pendingAuthorReview:false},...prev]);
     setShowCreate(false);
     setNewProp({title:"",sectorId:"ff_health",summary:""});
     setQuizQs(Array.from({length:10},(_,i)=>({id:i,q:"",opts:["","","",""],a:0})));
@@ -541,7 +633,7 @@ export default function DDTAP({ session }){
   );
 
   const Badge=({status})=>{
-    const m={voting:["VOTING","b-voting"],deliberation:["DELIBERATION","b-deliberation"],passed:["PASSED","b-passed"],failed:["FAILED","b-failed"]};
+    const m={voting:["VOTING","b-voting"],deliberation:["DELIBERATION","b-deliberation"],passed:["PASSED","b-passed"],failed:["FAILED","b-failed"],pending:["PENDING MOD REVIEW","b-pending"],shelved:["SHELVED","b-shelved"]};
     const[l,c]=m[status]||["?",""];return<span className={`badge ${c}`}>{l}</span>;
   };
 
@@ -830,6 +922,64 @@ export default function DDTAP({ session }){
 
   const renderProposalDetail=()=>{
     const p=getSel();if(!p)return null;
+
+    // Author review mode
+    if(p.pendingAuthorReview&&p.author===USER.username&&p.status==="pending"){
+      const draft=authorEditDraft||{title:p.title,summary:p.summary,questions:p.questions};
+      return<div className="content">
+        <button className="back-btn" onClick={()=>setView("proposals")}>← Back to Proposals</button>
+        <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:10}}><Badge status={p.status}/></div>
+        <div style={{fontFamily:"var(--fdisplay)",fontSize:22,fontWeight:700,marginBottom:6}}>{p.title}</div>
+        <div className="info-box" style={{borderColor:"rgba(200,168,75,.3)"}}>
+          The moderator team has reviewed your proposal and made edits. Review the changes below. You may edit before approving. When you are satisfied, click <strong style={{color:"var(--gold)"}}>Save & Approve</strong> to make the proposal live. This action is final.
+        </div>
+
+        <div className="card" style={{marginBottom:14}}>
+          <div className="ctitle">Proposal Title</div>
+          <input className="finput" value={draft.title} onChange={e=>setAuthorEditDraft(d=>({...(d||draft),title:e.target.value}))}/>
+        </div>
+
+        <div className="card" style={{marginBottom:14}}>
+          <div className="ctitle">Proposal Summary</div>
+          <textarea className="finput ftarea" value={draft.summary} onChange={e=>setAuthorEditDraft(d=>({...(d||draft),summary:e.target.value}))}/>
+        </div>
+
+        <div className="card" style={{marginBottom:14}}>
+          <div className="ctitle">Comprehension Questions</div>
+          {draft.questions.map((q,i)=><div key={i} style={{marginBottom:16,padding:12,background:"rgba(0,0,0,.2)",borderRadius:3}}>
+            <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--gold)",marginBottom:6}}>Q{i+1}</div>
+            <input className="finput" style={{marginBottom:8}} value={q.q} onChange={e=>setAuthorEditDraft(d=>{const qs=[...(d||draft).questions];qs[i]={...qs[i],q:e.target.value};return{...(d||draft),questions:qs};})}/>
+            {q.opts.map((opt,j)=><div key={j} style={{display:"flex",gap:6,alignItems:"center",marginBottom:4}}>
+              <input type="radio" checked={q.a===j} onChange={()=>setAuthorEditDraft(d=>{const qs=[...(d||draft).questions];qs[i]={...qs[i],a:j};return{...(d||draft),questions:qs};})} style={{accentColor:"var(--gold)"}}/>
+              <input className="finput" style={{marginBottom:0}} value={opt} onChange={e=>setAuthorEditDraft(d=>{const qs=[...(d||draft).questions];qs[i]={...qs[i],opts:qs[i].opts.map((o,l)=>l===j?e.target.value:o)};return{...(d||draft),questions:qs};})}/>
+            </div>)}
+          </div>)}
+        </div>
+
+        <div className="card" style={{marginBottom:14}}>
+          <div className="ctitle">Version History</div>
+          {(propVersions[p.id]||[]).length===0&&<div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)"}}>No edits recorded.</div>}
+          {[...(propVersions[p.id]||[])].reverse().map((v,i)=><div key={i} className="version-item">
+            <div className="version-num">VERSION {v.version} · {v.created_at} · by {v.edited_by_username}</div>
+            <div style={{fontSize:12,color:"var(--cream)",marginBottom:2}}>{v.title}</div>
+            <div style={{fontSize:11,color:"var(--cream-dim)"}}>{v.summary.length>100?v.summary.slice(0,100)+"…":v.summary}</div>
+          </div>)}
+        </div>
+
+        <button className="save-btn" style={{width:"100%"}} onClick={()=>setShowAuthorConfirm(true)}>
+          Save & Approve → Make Live
+        </button>
+
+        {showAuthorConfirm&&<div className="modal-ov" onClick={e=>e.target===e.currentTarget&&setShowAuthorConfirm(false)}><div className="modal">
+          <div className="modal-title">Are you sure?</div>
+          <div className="modal-sub">Once approved, your proposal will go live on the platform and enter the voting phase. This cannot be undone. Citizens will be able to read, discuss, and vote on it.</div>
+          <div className="modal-acts">
+            <button className="btn-g" onClick={()=>setShowAuthorConfirm(false)}>Go Back</button>
+            <button className="btn-p" onClick={()=>authorApprove(p.id,draft)}>Yes, Make It Live</button>
+          </div>
+        </div></div>}
+      </div>;
+    }
     const ua=savedAlloc[p.sector]?.[p.sectorId]||0;
     const canVote=p.status==="voting"&&ua>0&&p.userPassedTest&&p.questions.length>0;
     const tot=p.forVotes+p.againstVotes,fp=tot>0?Math.round((p.forVotes/tot)*100):0;
@@ -857,7 +1007,18 @@ export default function DDTAP({ session }){
       </div>}
       {dtab==="test"&&<div className="card">{testDone?<><div className="score-disp"><div className={`score-num ${testScore>=5?"score-pass":"score-fail"}`}>{testScore}/10</div><div className="score-lbl" style={{color:testScore>=5?"var(--green)":"var(--red)"}}>{testScore>=5?"✅ PASSED — You may now vote":"❌ FAILED — Minimum 5/10 required"}</div>{testScore>=5?<button className="save-btn" style={{marginTop:22}} onClick={()=>setDtab("vote")}>Proceed to Vote →</button>:<button className="btn-g" style={{marginTop:22}} onClick={()=>{setTestAns({});setTestDone(false);setTestScore(null);}}>Retake Test</button>}</div><div style={{marginTop:22}}>{p.questions.map((q,i)=><div key={i} className="qblock"><div className="qnum">Q{i+1}</div><div className="qtext">{q.q}</div><div className="opts">{q.opts.map((opt,j)=>{const isSel=testAns[i]===j,isCorr=j===q.a;const cls=isSel&&isCorr?"corr":isSel?"incorr":isCorr?"corr":"";return<div key={j} className={`opt-btn ${cls}`}>{opt}</div>;})}</div></div>)}</div></>:<><div className="ctitle">Reading & Comprehension Test</div><p style={{fontSize:12,color:"var(--cream-dim)",marginBottom:22,lineHeight:1.7}}>Answer at least <strong style={{color:"var(--gold)"}}>5 of 10</strong> correctly to unlock voting.</p>{p.questions.map((q,i)=><div key={i} className="qblock"><div className="qnum">QUESTION {i+1} OF {p.questions.length}</div><div className="qtext">{q.q}</div><div className="opts">{q.opts.map((opt,j)=><button key={j} className={`opt-btn ${testAns[i]===j?"sel":""}`} onClick={()=>setTestAns(prev=>({...prev,[i]:j}))}>{opt}</button>)}</div></div>)}<button className="save-btn" style={{opacity:Object.keys(testAns).length<p.questions.length?.5:1}} onClick={()=>submitTest(p)}>Submit Test ({Object.keys(testAns).length}/{p.questions.length} answered)</button></>}</div>}
       {dtab==="vote"&&<div className="card"><div className="ctitle">Cast Your Vote</div>
-        {noTest?
+        {p.status==="pending"?
+          <div style={{padding:24,fontFamily:"var(--fmono)",fontSize:12,color:"var(--gold)"}}>⏳ This proposal is under moderator review. Voting will open once approved.</div>
+        :p.status==="shelved"?
+          <div style={{padding:24,fontFamily:"var(--fmono)",fontSize:12}}>
+            <div style={{color:"var(--text-dim)",marginBottom:10}}>This proposal was shelved by the moderator team.</div>
+            {p.shelveReason&&<div style={{padding:"10px 14px",background:"rgba(224,82,82,.08)",border:"1px solid rgba(224,82,82,.2)",borderRadius:2,color:"var(--red)",marginBottom:14}}>Reason: {p.shelveReason}</div>}
+            {p.author===USER.username&&<>
+              <div style={{color:"var(--cream-dim)",marginBottom:10,fontSize:12}}>As the author you may flag this decision to the Oversight Committee, or start a new proposal from scratch.</div>
+              <button className="btn-g" style={{color:"var(--gold)",borderColor:"rgba(200,168,75,.3)"}} onClick={()=>setShowFlagModal(p.id)}>Flag to Oversight Committee</button>
+            </>}
+          </div>
+        :noTest?
           <div style={{padding:28,textAlign:"center",fontFamily:"var(--fmono)",fontSize:12,color:"var(--red)"}}>⚠ This proposal has no comprehension test. Voting is blocked until a test is added by the moderator team.</div>
         :(p.status==="passed"||p.status==="failed")?
           <div style={{padding:24,fontFamily:"var(--fmono)",fontSize:12,color:"var(--text-dim)"}}>
@@ -1043,6 +1204,212 @@ export default function DDTAP({ session }){
     {aboutTab==="jasper"&&<AboutJasper/>}
   </div>;
 
+  const renderModDashboard=()=>{
+    const pending=proposals.filter(p=>p.status==="pending");
+    const modSelected=modSelectedId?proposals.find(p=>p.id===modSelectedId):null;
+
+    if(modSelected){
+      const versions=propVersions[modSelected.id]||[];
+      const draft=modEditDraft||{title:modSelected.title,summary:modSelected.summary,questions:modSelected.questions};
+      return<div className="content">
+        <button className="back-btn" onClick={()=>{setModSelectedId(null);setModEditDraft(null);}}>← Back to Pending Proposals</button>
+        <div style={{display:"flex",gap:10,alignItems:"center",marginBottom:10}}><Badge status={modSelected.status}/></div>
+        <div style={{fontFamily:"var(--fdisplay)",fontSize:22,fontWeight:700,marginBottom:6}}>{modSelected.title}</div>
+        <div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)",marginBottom:22}}>
+          By <UserLink username={modSelected.author}/> · Filed {modSelected.created} · {modSelected.sector.toUpperCase()} · {modSelected.sectorName}
+          {modSelected.pendingAuthorReview&&<span style={{color:"var(--gold)",marginLeft:12}}>⏳ Awaiting author review</span>}
+        </div>
+
+        <div className="two-col" style={{marginBottom:22}}>
+          <div>
+            <div className="card" style={{marginBottom:14}}>
+              <div className="ctitle">Edit Proposal</div>
+              <div className="fgrp"><label className="flbl">TITLE</label><input className="finput" value={draft.title} onChange={e=>setModEditDraft(d=>({...d,title:e.target.value}))}/></div>
+              <div className="fgrp"><label className="flbl">SUMMARY</label><textarea className="finput ftarea" value={draft.summary} onChange={e=>setModEditDraft(d=>({...d,summary:e.target.value}))}/></div>
+            </div>
+            <div className="card">
+              <div className="ctitle">Comprehension Questions</div>
+              {draft.questions.map((q,i)=><div key={i} style={{marginBottom:16,padding:12,background:"rgba(0,0,0,.2)",borderRadius:3}}>
+                <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--gold)",marginBottom:6}}>Q{i+1}</div>
+                <input className="finput" style={{marginBottom:8}} value={q.q} onChange={e=>setModEditDraft(d=>({...d,questions:d.questions.map((x,j)=>j===i?{...x,q:e.target.value}:x)}))}/>
+                {q.opts.map((opt,j)=><div key={j} style={{display:"flex",gap:6,alignItems:"center",marginBottom:4}}>
+                  <input type="radio" checked={q.a===j} onChange={()=>setModEditDraft(d=>({...d,questions:d.questions.map((x,k)=>k===i?{...x,a:j}:x)}))} style={{accentColor:"var(--gold)"}}/>
+                  <input className="finput" style={{marginBottom:0}} value={opt} onChange={e=>setModEditDraft(d=>({...d,questions:d.questions.map((x,k)=>k===i?{...x,opts:x.opts.map((o,l)=>l===j?e.target.value:o)}:x)}))}/>
+                </div>)}
+              </div>)}
+            </div>
+          </div>
+
+          <div>
+            <div className="card" style={{marginBottom:14}}>
+              <div className="ctitle">Peer Review — Production System</div>
+              <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)",lineHeight:1.9}}>
+                <div style={{color:"var(--gold)",marginBottom:8}}>⚠ DEMO MODE · Peer review not enforced</div>
+                In production, all mod actions require approval from 2 other moderators before taking effect:
+                <div style={{marginTop:8,paddingLeft:10,borderLeft:"2px solid var(--border)"}}>
+                  <div>1. Mod submits edits or a decision</div>
+                  <div>2. Two other mods independently approve or reject</div>
+                  <div>3. Two approvals → action proceeds to author</div>
+                  <div>4. Two rejections → returned to original mod for revision</div>
+                </div>
+                <div style={{marginTop:8,color:"var(--cream-dim)"}}>No mod may approve their own submission. All peer review activity is publicly logged.</div>
+              </div>
+            </div>
+            <div className="card" style={{marginBottom:14}}>
+              <div className="ctitle">Actions</div>
+              <div style={{display:"flex",flexDirection:"column",gap:10}}>
+                {modSelected.author===USER.username&&<div style={{fontFamily:"var(--fmono)",fontSize:11,padding:"10px 14px",background:"rgba(224,82,82,.08)",border:"1px solid rgba(224,82,82,.2)",borderRadius:2,color:"var(--red)"}}>⚠ You authored this proposal. You cannot edit, approve, or shelve your own proposals.</div>}
+                {modSelected.author!==USER.username&&<>
+                  <button className="btn-p" onClick={()=>modEditDraft&&modEditProposal(modSelected.id,draft.title,draft.summary,draft.questions)}>Save Edits & Send to Author</button>
+                  <button className="save-btn" style={{width:"100%"}} onClick={()=>modApprove(modSelected.id)} disabled={modSelected.pendingAuthorReview}>
+                    {modSelected.pendingAuthorReview?"Awaiting Author Response":"✓ Approve & Make Live"}
+                  </button>
+                  {(()=>{
+                    const versions=propVersions[modSelected.id]||[];
+                    const authorHasReplied=versions.length>0&&!modSelected.pendingAuthorReview;
+                    return<>
+                      <button className="btn-g" style={{color:"var(--red)",borderColor:"rgba(224,82,82,.3)",opacity:authorHasReplied?1:.4,cursor:authorHasReplied?"pointer":"not-allowed"}}
+                        disabled={!authorHasReplied}
+                        onClick={()=>setShowShelveModal(modSelected.id)}>
+                        Shelve Proposal
+                      </button>
+                      {!authorHasReplied&&<div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)"}}>
+                        {versions.length===0?"Send edits to the author first before shelving is available.":"Awaiting author's response before shelving is available."}
+                      </div>}
+                    </>;
+                  })()}
+                </>}
+              </div>
+            </div>
+
+            <div className="card">
+              <div className="ctitle">Version History ({versions.length} edits)</div>
+              {versions.length===0&&<div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)"}}>No edits yet — original submission.</div>}
+              {[...versions].reverse().map((v,i)=><div key={i} className="version-item">
+                <div className="version-num">VERSION {v.version} · {v.created_at} · by {v.edited_by_username}</div>
+                <div style={{fontSize:12,color:"var(--cream)",marginBottom:4}}>{v.title}</div>
+                <div style={{fontSize:11,color:"var(--cream-dim)"}}>{v.summary.length>100?v.summary.slice(0,100)+"…":v.summary}</div>
+              </div>)}
+            </div>
+          </div>
+        </div>
+      </div>;
+    }
+
+    return<div className="content">
+      <div style={{fontFamily:"var(--fdisplay)",fontSize:20,fontWeight:700,marginBottom:6}}>Moderator Dashboard</div>
+      <div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)",marginBottom:22}}>All proposals pending review. Your actions are publicly logged to the civic ledger.</div>
+      {pending.length===0&&<div className="card"><div style={{fontFamily:"var(--fmono)",fontSize:12,color:"var(--text-dim)"}}>No proposals pending review.</div></div>}
+      {pending.map(p=><div key={p.id} className="mod-card" onClick={()=>{setModSelectedId(p.id);setModEditDraft({title:p.title,summary:p.summary,questions:p.questions});}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+          <div>
+            <div style={{fontFamily:"var(--fdisplay)",fontSize:15,fontWeight:600,marginBottom:4}}>{p.title}</div>
+            <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)"}}>By <UserLink username={p.author}/> · {p.sector.toUpperCase()} · {p.sectorName} · Filed {p.created}</div>
+          </div>
+          <div style={{display:"flex",gap:8,flexShrink:0}}>
+            <Badge status={p.status}/>
+            {p.pendingAuthorReview&&<span style={{fontFamily:"var(--fmono)",fontSize:10,padding:"2px 7px",background:"rgba(200,168,75,.15)",color:"var(--gold)",borderRadius:2}}>Author Review</span>}
+          </div>
+        </div>
+        <div style={{marginTop:8,fontSize:12,color:"var(--cream-dim)"}}>{p.summary.length>120?p.summary.slice(0,120)+"…":p.summary}</div>
+      </div>)}
+
+      {showShelveModal&&<div className="modal-ov" onClick={e=>e.target===e.currentTarget&&setShowShelveModal(null)}><div className="modal">
+        <div className="modal-title">Shelve Proposal</div>
+        <div className="modal-sub">This will notify the author and move the proposal to shelved status. The author may flag this decision to the Oversight Committee.</div>
+        <div className="fgrp"><label className="flbl">REASON FOR SHELVING</label><textarea className="finput ftarea" placeholder="Explain clearly why this proposal is being shelved…" value={shelveReason} onChange={e=>setShelveReason(e.target.value)}/></div>
+        <div className="modal-acts">
+          <button className="btn-g" onClick={()=>setShowShelveModal(null)}>Cancel</button>
+          <button className="btn-p" style={{background:"var(--red)",color:"#fff"}} disabled={!shelveReason.trim()} onClick={()=>{modShelve(showShelveModal,shelveReason);setShowShelveModal(null);setShelveReason("");setModSelectedId(null);}}>Confirm Shelve</button>
+        </div>
+      </div></div>}
+    </div>;
+  };
+
+  const renderOversightDashboard=()=>{
+    const active=oversightFlags.filter(f=>f.status==="pending");
+    const archived=oversightFlags.filter(f=>f.status==="resolved");
+    const selected=oversightSelectedId?oversightFlags.find(f=>f.id===oversightSelectedId):null;
+
+    if(selected){
+      const p=proposals.find(x=>x.id===selected.proposal_id);
+      const daysLeft=Math.ceil((new Date(selected.deadline)-new Date())/(1000*60*60*24));
+      return<div className="content">
+        <button className="back-btn" onClick={()=>setOversightSelectedId(null)}>← Back to Flags</button>
+        <div style={{fontFamily:"var(--fdisplay)",fontSize:22,fontWeight:700,marginBottom:6}}>{selected.proposal_title}</div>
+        <div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)",marginBottom:22}}>
+          Flagged by <UserLink username={selected.author_username}/> · {selected.created_at}
+          {selected.status==="pending"&&<span style={{color:daysLeft<14?"var(--red)":"var(--gold)",marginLeft:12}}>{daysLeft} days remaining</span>}
+        </div>
+        <div className="two-col">
+          <div>
+            <div className="card" style={{marginBottom:14}}>
+              <div className="ctitle">Author's Reason for Flag</div>
+              <p style={{fontSize:13,color:"var(--cream-dim)",lineHeight:1.7}}>{selected.reason}</p>
+            </div>
+            {p&&<div className="card">
+              <div className="ctitle">Proposal (Shelved)</div>
+              <div style={{fontFamily:"var(--fdisplay)",fontSize:15,fontWeight:600,marginBottom:8}}>{p.title}</div>
+              <p style={{fontSize:13,color:"var(--cream-dim)",lineHeight:1.7,marginBottom:8}}>{p.summary}</p>
+              {p.shelveReason&&<div style={{fontFamily:"var(--fmono)",fontSize:11,padding:"10px 14px",background:"rgba(224,82,82,.08)",border:"1px solid rgba(224,82,82,.2)",borderRadius:2,color:"var(--red)"}}>Mod shelve reason: {p.shelveReason}</div>}
+            </div>}
+          </div>
+          <div>
+            <div className="card" style={{marginBottom:14}}>
+              <div className="ctitle">Version History</div>
+              {(propVersions[selected.proposal_id]||[]).length===0&&<div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)"}}>No mod edits were made.</div>}
+              {(propVersions[selected.proposal_id]||[]).map((v,i)=><div key={i} className="version-item">
+                <div className="version-num">VERSION {v.version} · {v.created_at} · by {v.edited_by_username}</div>
+                <div style={{fontSize:12,color:"var(--cream)"}}>{v.title}</div>
+                <div style={{fontSize:11,color:"var(--cream-dim)"}}>{v.summary.length>80?v.summary.slice(0,80)+"…":v.summary}</div>
+              </div>)}
+            </div>
+            {selected.status==="pending"&&<div className="card">
+              <div className="ctitle">Cast Your Vote</div>
+              <div style={{display:"flex",gap:10,flexDirection:"column"}}>
+                <button className="save-btn" style={{width:"100%"}} onClick={()=>oversightVote(selected.id,"reinstate","Oversight committee determined the proposal was improperly shelved.")}>✓ Reinstate Proposal</button>
+                <button className="btn-g" style={{color:"var(--red)",borderColor:"rgba(224,82,82,.3)",width:"100%"}} onClick={()=>oversightVote(selected.id,"uphold","Oversight committee upheld the moderator's decision.")}>✗ Uphold Shelving</button>
+              </div>
+            </div>}
+            {selected.status==="resolved"&&<div className="card">
+              <div className="ctitle">Outcome</div>
+              <div style={{fontFamily:"var(--fmono)",fontSize:13,color:selected.outcome==="reinstate"?"var(--green)":"var(--red)"}}>
+                {selected.outcome==="reinstate"?"✓ Proposal Reinstated":"✗ Shelving Upheld"}
+              </div>
+              {selected.votes.map((v,i)=><div key={i} style={{marginTop:10,fontSize:12,color:"var(--cream-dim)"}}><strong style={{color:"var(--cream)"}}>{v.voter}</strong>: {v.reasoning}</div>)}
+            </div>}
+          </div>
+        </div>
+      </div>;
+    }
+
+    return<div className="content">
+      <div style={{fontFamily:"var(--fdisplay)",fontSize:20,fontWeight:700,marginBottom:6}}>Oversight Committee</div>
+      <div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)",marginBottom:22}}>You are reviewing moderator decisions on shelved proposals at the request of authors. Votes must be cast within 90 days.</div>
+      {active.length>0&&<><div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--gold)",marginBottom:10,letterSpacing:".06em"}}>REQUIRES YOUR VOTE</div>
+      {active.map(f=>{
+        const daysLeft=Math.ceil((new Date(f.deadline)-new Date())/(1000*60*60*24));
+        return<div key={f.id} className="flag-card urgent" style={{cursor:"pointer"}} onClick={()=>setOversightSelectedId(f.id)}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+            <div style={{fontFamily:"var(--fdisplay)",fontSize:15,fontWeight:600}}>{f.proposal_title}</div>
+            <span style={{fontFamily:"var(--fmono)",fontSize:10,color:daysLeft<14?"var(--red)":"var(--gold)"}}>{daysLeft}d left</span>
+          </div>
+          <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)",marginTop:4}}>Flagged by <UserLink username={f.author_username}/> · {f.created_at}</div>
+          <div style={{fontSize:12,color:"var(--cream-dim)",marginTop:6}}>{f.reason.length>100?f.reason.slice(0,100)+"…":f.reason}</div>
+        </div>;
+      })}</>}
+      {archived.length>0&&<><div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)",marginTop:22,marginBottom:10,letterSpacing:".06em"}}>ARCHIVED · RESOLVED</div>
+      {archived.map(f=><div key={f.id} className="flag-card" style={{cursor:"pointer",opacity:.7}} onClick={()=>setOversightSelectedId(f.id)}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div style={{fontFamily:"var(--fdisplay)",fontSize:14,fontWeight:600}}>{f.proposal_title}</div>
+          <span style={{fontFamily:"var(--fmono)",fontSize:10,padding:"2px 7px",background:f.outcome==="reinstate"?"rgba(76,174,127,.15)":"rgba(224,82,82,.15)",color:f.outcome==="reinstate"?"var(--green)":"var(--red)",borderRadius:2}}>{f.outcome==="reinstate"?"Reinstated":"Upheld"}</span>
+        </div>
+        <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)",marginTop:4}}>Resolved · {f.votes[0]?.ts}</div>
+      </div>)}</>}
+      {oversightFlags.length===0&&<div className="card"><div style={{fontFamily:"var(--fmono)",fontSize:12,color:"var(--text-dim)"}}>No flags submitted yet.</div></div>}
+    </div>;
+  };
+
   const navItems=[
     {id:"dashboard",icon:"⬡",label:"Dashboard"},
     {id:"allocate",icon:"◈",label:"Tax Allocation"},
@@ -1050,12 +1417,14 @@ export default function DDTAP({ session }){
     {id:"ledger",icon:"≡",label:"Ledger"},
     {id:"about",icon:"◎",label:"About"},
     {id:"profile",icon:"○",label:"Profile"},
+    ...(USER.role==="moderator"?[{id:"mod",icon:"⚑",label:"Mod Dashboard"}]:[]),
+    ...(USER.role==="oversight"?[{id:"oversight",icon:"⊛",label:"Oversight"}]:[]),
   ];
 
-  const vl={dashboard:"Dashboard",allocate:"Tax Allocation",proposals:"Proposals",proposal:"Proposal Detail",ledger:"Civic Ledger",profile:"My Profile",about:"About"};
+  const vl={dashboard:"Dashboard",allocate:"Tax Allocation",proposals:"Proposals",proposal:"Proposal Detail",ledger:"Civic Ledger",profile:"My Profile",about:"About",mod:"Moderator Dashboard",oversight:"Oversight Committee"};
   const isActive=(id)=>view===id||(id==="proposals"&&view==="proposal");
 
-  const handleLogout=async()=>{ await supabase.auth.signOut(); };
+  const handleLogout=async()=>{ await supabase.auth.signOut(); onLogout(); };
 
   return<>
     <style>{CSS}</style>
@@ -1069,7 +1438,13 @@ export default function DDTAP({ session }){
           <div className="sb-user-sub">@{USER.username}</div>
           <div className="sb-user-sub" style={{marginTop:4,color:"var(--green)"}}>● Active Citizen</div>
           <div className="sb-user-sub" style={{marginTop:2}}>{USER.municipality}, {USER.province}</div>
-          <div onClick={handleLogout} style={{marginTop:12,fontFamily:"var(--fmono)",fontSize:10,color:"var(--red)",cursor:"pointer"}}>Log out</div>
+          <div style={{marginTop:10,display:"flex",alignItems:"center",gap:10}}>
+            <div style={{position:"relative",cursor:"pointer"}} onClick={()=>setShowNotifications(true)}>
+              <span style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)"}}>🔔 Notifications</span>
+              {notifications.filter(n=>!n.read).length>0&&<span className="notif-badge">{notifications.filter(n=>!n.read).length}</span>}
+            </div>
+          </div>
+          <div onClick={handleLogout} style={{marginTop:8,fontFamily:"var(--fmono)",fontSize:10,color:"var(--red)",cursor:"pointer"}}>Log out</div>
         </div>
       </aside>
       <main className="main">
@@ -1087,6 +1462,8 @@ export default function DDTAP({ session }){
         {view==="ledger"&&<Ledger/>}
         {view==="profile"&&<Profile/>}
         {view==="about"&&<About/>}
+        {view==="mod"&&USER.role==="moderator"&&renderModDashboard()}
+        {view==="oversight"&&USER.role==="oversight"&&renderOversightDashboard()}
       </main>
       <nav className="bottom-nav"><div className="bnav-items">{navItems.map(n=><button key={n.id} className={`bnav-item ${isActive(n.id)?"active":""}`} onClick={()=>navTo(n.id)}><span className="bnav-icon">{n.icon}</span>{n.label}</button>)}</div></nav>
 
@@ -1161,6 +1538,26 @@ export default function DDTAP({ session }){
           <button className="btn-g" onClick={()=>{setShowAssignRep(false);setAssignRepUsername("");}}>Cancel</button>
           <button className="btn-p" disabled={!assignRepSector||!assignRepUsername} onClick={()=>assignRep(assignRepSector.id,assignRepSector.name,assignRepSector.level,assignRepUsername)}>Assign Rep</button>
         </div>
+      </div></div>}
+
+      {showFlagModal&&<div className="modal-ov" onClick={e=>e.target===e.currentTarget&&setShowFlagModal(null)}><div className="modal">
+        <div className="modal-title">Flag to Oversight Committee</div>
+        <div className="modal-sub">Explain why you believe this proposal was improperly shelved. The Oversight Committee will audit the moderator's decision within 90 days.</div>
+        <div className="fgrp"><label className="flbl">YOUR REASON</label><textarea className="finput ftarea" placeholder="Explain why you believe this shelving was unjustified…" value={flagReason} onChange={e=>setFlagReason(e.target.value)}/></div>
+        <div className="modal-acts">
+          <button className="btn-g" onClick={()=>setShowFlagModal(null)}>Cancel</button>
+          <button className="btn-p" disabled={!flagReason.trim()} onClick={()=>{flagToOversight(showFlagModal,flagReason);setShowFlagModal(null);setFlagReason("");}}>Submit Flag</button>
+        </div>
+      </div></div>}
+
+      {showNotifications&&<div className="modal-ov" onClick={e=>e.target===e.currentTarget&&setShowNotifications(false)}><div className="modal">
+        <div className="modal-title">Notifications</div>
+        {notifications.length===0&&<div style={{fontFamily:"var(--fmono)",fontSize:12,color:"var(--text-dim)"}}>No notifications yet.</div>}
+        {notifications.map(n=><div key={n.id} style={{padding:"12px 0",borderBottom:"1px solid rgba(26,51,85,.4)"}}>
+          <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--gold)",marginBottom:4}}>{n.type.toUpperCase()}</div>
+          <div style={{fontSize:13,color:"var(--cream-dim)"}}>{n.message}</div>
+        </div>)}
+        <div className="modal-acts"><button className="btn-g" onClick={()=>setShowNotifications(false)}>Close</button></div>
       </div></div>}
 
       {notif&&<div className="notif">{notif}</div>}
