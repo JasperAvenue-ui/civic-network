@@ -566,7 +566,7 @@ export default function DDTAP({ session, onLogout }){
   };
 
   const createProposal=()=>{
-    const all3=[...SECTORS.federal.flexible,...SECTORS.provincial.flexible,...SECTORS.municipal.flexible];
+    const all3=[...SECTORS.federal.critical,...SECTORS.federal.flexible,...SECTORS.provincial.critical,...SECTORS.provincial.flexible,...SECTORS.municipal.critical,...SECTORS.municipal.flexible];
     const sec=all3.find(s=>s.id===newProp.sectorId);
     const lvl=sec.id.startsWith("f")?"federal":sec.id.startsWith("p")?"provincial":"municipal";
     const questions=quizQs.map(q=>({q:q.q,opts:q.opts,a:q.a}));
