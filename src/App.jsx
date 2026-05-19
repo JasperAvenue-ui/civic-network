@@ -568,7 +568,7 @@ export default function DDTAP({ session, onLogout }){
   const createProposal=()=>{
     const all3=[...SECTORS.federal.flexible,...SECTORS.provincial.flexible,...SECTORS.municipal.flexible];
     const sec=all3.find(s=>s.id===newProp.sectorId);
-    const lvl=sec.id.startsWith("ff")?"federal":sec.id.startsWith("pf")?"provincial":"municipal";
+    const lvl=sec.id.startsWith("f")?"federal":sec.id.startsWith("p")?"provincial":"municipal";
     const questions=quizQs.map(q=>({q:q.q,opts:q.opts,a:q.a}));
     setProposals(prev=>[{id:`p${Date.now()}`,title:newProp.title,sector:lvl,sectorName:sec.name,sectorId:sec.id,status:"pending",author:USER.username,created:new Date().toISOString().slice(0,10),deadline:null,summary:newProp.summary,forVotes:0,againstVotes:0,totalEligible:0,quorumPct:0,userVoted:null,userPassedTest:false,questions,shelveReason:null,pendingAuthorReview:false,province:USER.province,municipality:USER.municipality},...prev]);
     setShowCreate(false);
@@ -1456,15 +1456,15 @@ export default function DDTAP({ session, onLogout }){
           <div className="fgrp"><label className="flbl">PROPOSAL TITLE</label><input className="finput" placeholder="A clear, specific, actionable title…" value={newProp.title} onChange={e=>setNewProp(p=>({...p,title:e.target.value}))}/></div>
           <div className="fgrp"><label className="flbl">TARGET SECTOR</label>
             <select className="finput fsel" value={newProp.sectorId} onChange={e=>setNewProp(p=>({...p,sectorId:e.target.value}))}>
-              <optgroup label="Federal">{SECTORS.federal.flexible.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
-              <optgroup label="Provincial (Alberta)">{SECTORS.provincial.flexible.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
-              <optgroup label="Municipal (Edmonton)">{SECTORS.municipal.flexible.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
+              <optgroup label="Federal">{[...SECTORS.federal.critical,...SECTORS.federal.flexible].map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
+              <optgroup label="Provincial (Alberta)">{[...SECTORS.provincial.critical,...SECTORS.provincial.flexible].map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
+              <optgroup label="Municipal (Edmonton)">{[...SECTORS.municipal.critical,...SECTORS.municipal.flexible].map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
             </select>
-            {(()=>{const lvl=newProp.sectorId.startsWith("ff")?"federal":newProp.sectorId.startsWith("pf")?"provincial":"municipal";const ua=savedAlloc[lvl]?.[newProp.sectorId]||0;return<div style={{marginTop:6,fontFamily:"var(--fmono)",fontSize:10,color:ua>0?"var(--green)":"var(--red)"}}>{ua>0?`✓ You have ${ua}% allocated — eligible to propose`:"⚠ You have 0% allocated here. Allocate taxes first."}</div>;})()}
+            {(()=>{const lvl=newProp.sectorId.startsWith("f")?"federal":newProp.sectorId.startsWith("p")?"provincial":"municipal";const ua=getUA(lvl,newProp.sectorId);return<div style={{marginTop:6,fontFamily:"var(--fmono)",fontSize:10,color:ua>0?"var(--green)":"var(--red)"}}>{ua>0?`✓ You have ${ua}% allocated — eligible to propose`:"⚠ You have 0% allocated here. Allocate taxes first."}</div>;})()}
           </div>
           <div className="fgrp"><label className="flbl">PROPOSAL SUMMARY</label><textarea className="finput ftarea" placeholder="Describe the proposal clearly. Voters must pass a comprehension test before voting…" value={newProp.summary} onChange={e=>setNewProp(p=>({...p,summary:e.target.value}))}/></div>
           <div className="modal-acts"><button className="btn-g" onClick={()=>setShowCreate(false)}>Cancel</button>
-            {(()=>{const lvl=newProp.sectorId.startsWith("ff")?"federal":newProp.sectorId.startsWith("pf")?"provincial":"municipal";const ua=savedAlloc[lvl]?.[newProp.sectorId]||0;return<button className="btn-p" disabled={!newProp.title||!newProp.summary||ua===0} onClick={()=>setCreateStep(2)}>Next: Build Quiz →</button>;})()}
+            {(()=>{const lvl=newProp.sectorId.startsWith("f")?"federal":newProp.sectorId.startsWith("p")?"provincial":"municipal";const ua=getUA(lvl,newProp.sectorId);return<button className="btn-p" disabled={!newProp.title||!newProp.summary||ua===0} onClick={()=>setCreateStep(2)}>Next: Build Quiz →</button>;})()}
           </div>
         </>}
 
@@ -1502,13 +1502,13 @@ export default function DDTAP({ session, onLogout }){
           <select className="finput fsel" value={assignRepSector?.id||""} onChange={e=>{
             const all=[...SECTORS.federal.flexible,...SECTORS.provincial.flexible,...SECTORS.municipal.flexible];
             const sec=all.find(s=>s.id===e.target.value);
-            const lvl=sec?.id.startsWith("ff")?"federal":sec?.id.startsWith("pf")?"provincial":"municipal";
+            const lvl=sec?.id.startsWith("f")?"federal":sec?.id.startsWith("p")?"provincial":"municipal";
             setAssignRepSector(sec?{...sec,level:lvl}:null);
           }}>
             <option value="">Select a sector…</option>
-            <optgroup label="Federal">{SECTORS.federal.flexible.filter(s=>savedAlloc.federal[s.id]>0).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
-            <optgroup label="Provincial">{SECTORS.provincial.flexible.filter(s=>savedAlloc.provincial[s.id]>0).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
-            <optgroup label="Municipal">{SECTORS.municipal.flexible.filter(s=>savedAlloc.municipal[s.id]>0).map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
+            <optgroup label="Federal">{[...SECTORS.federal.critical,...SECTORS.federal.flexible.filter(s=>savedAlloc.federal[s.id]>0)].map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
+            <optgroup label="Provincial">{[...SECTORS.provincial.critical,...SECTORS.provincial.flexible.filter(s=>savedAlloc.provincial[s.id]>0)].map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
+            <optgroup label="Municipal">{[...SECTORS.municipal.critical,...SECTORS.municipal.flexible.filter(s=>savedAlloc.municipal[s.id]>0)].map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</optgroup>
           </select>
         </div>
         <div className="fgrp"><label className="flbl">REPRESENTATIVE USERNAME</label>
