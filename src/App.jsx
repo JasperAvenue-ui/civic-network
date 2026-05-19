@@ -784,8 +784,14 @@ export default function DDTAP({ session, onLogout }){
     ];
 
     if(selectedSector){
-      const active=proposals.filter(p=>p.sectorId===selectedSector.id&&(p.status==="voting")&&(selectedSector.level==="federal"||(selectedSector.level==="provincial"&&p.province===USER.province)||(selectedSector.level==="municipal"&&p.municipality===USER.municipality)));
-      const past=proposals.filter(p=>p.sectorId===selectedSector.id&&(p.status==="passed"||p.status==="failed")&&(selectedSector.level==="federal"||(selectedSector.level==="provincial"&&p.province===USER.province)||(selectedSector.level==="municipal"&&p.municipality===USER.municipality)));
+      const inJuris=(p)=>selectedSector.level==="federal"||(selectedSector.level==="provincial"&&p.province===USER.province)||(selectedSector.level==="municipal"&&p.municipality===USER.municipality);
+      const sectorProposals=proposals.filter(p=>p.sectorId===selectedSector.id&&inJuris(p));
+      const pending=sectorProposals.filter(p=>p.status==="pending");
+      const active=sectorProposals.filter(p=>p.status==="voting");
+      const passed=sectorProposals.filter(p=>p.status==="passed");
+      const failed=sectorProposals.filter(p=>p.status==="failed");
+      const shelved=sectorProposals.filter(p=>p.status==="shelved");
+      const archived=[...passed,...failed,...shelved];
       const isCritSector=SECTORS[selectedSector.level]?.critical.some(s=>s.id===selectedSector.id);
       const ua=isCritSector?(selectedSector.pct||10):savedAlloc[selectedSector.level]?.[selectedSector.id]||0;
       return<div className="content">
@@ -799,26 +805,51 @@ export default function DDTAP({ session, onLogout }){
           {ua>0?`Your allocation: ${ua}% · ${ua} participation points`:"You have no allocation in this sector"}
         </div>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:14}}>
-          <div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)"}}>{active.length} active proposal{active.length!==1?"s":""}</div>
+          <div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)"}}>{active.length} voting · {pending.length} pending review</div>
           {ua>0&&<button className="btn-p" onClick={()=>{
-            const allFlexIds=SECTORS[selectedSector.level]?.flexible.map(s=>s.id)||[];
-            const isCrit=!allFlexIds.includes(selectedSector.id);
-            const firstEligible=isCrit
-              ?([...SECTORS[selectedSector.level].flexible].find(s=>savedAlloc[selectedSector.level][s.id]>0)||SECTORS[selectedSector.level].flexible[0]).id
-              :selectedSector.id;
-            setNewProp(p=>({...p,sectorId:firstEligible}));
+            setNewProp(p=>({...p,sectorId:selectedSector.id}));
             setShowCreate(true);
           }}>+ New Proposal</button>}
         </div>
-        {active.length>0?<div className="prop-list">{active.map(p=><PCard key={p.id} p={p}/>)}</div>
-          :<div style={{padding:"24px",textAlign:"center",fontFamily:"var(--fmono)",fontSize:12,color:"var(--text-dim)",background:"var(--bg-card)",border:"1px solid var(--border)",borderRadius:3}}>No active proposals in this sector</div>}
-        {past.length>0&&<>
+
+        {pending.length>0&&<>
+          <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--gold)",letterSpacing:".07em",marginBottom:8}}>PENDING MOD REVIEW</div>
+          <div className="prop-list" style={{marginBottom:22}}>{pending.map(p=>{
+            const versions=propVersions[p.id]||[];
+            return<div key={p.id} style={{background:"var(--bg-card)",border:"1px solid var(--border)",borderLeft:"3px solid var(--gold)",borderRadius:3,padding:"16px 20px",cursor:"pointer"}} onClick={()=>openProp(p)}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+                <div style={{fontFamily:"var(--fdisplay)",fontSize:15,fontWeight:600}}>{p.title}</div>
+                <Badge status={p.status}/>
+              </div>
+              <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)",marginTop:6}}>By <UserLink username={p.author}/> · Filed {p.created}</div>
+              <div style={{fontSize:12,color:"var(--cream-dim)",marginTop:6,lineHeight:1.6}}>{p.summary.length>120?p.summary.slice(0,120)+"…":p.summary}</div>
+              {versions.length>0&&<div style={{marginTop:10,fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)",padding:"8px 12px",background:"rgba(0,0,0,.2)",borderRadius:2}}>
+                <div style={{color:"var(--gold)",marginBottom:4}}>MOD ACTIONS ({versions.length})</div>
+                {versions.slice(-1).map((v,i)=><div key={i}>Last edit: version {v.version} by {v.edited_by_username} · {v.created_at}</div>)}
+                {p.pendingAuthorReview&&<div style={{color:"var(--gold)",marginTop:4}}>⏳ Awaiting author review</div>}
+              </div>}
+            </div>;
+          })}</div>
+        </>}
+
+        {active.length>0&&<>
+          <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--blue)",letterSpacing:".07em",marginBottom:8}}>OPEN FOR VOTING</div>
+          <div className="prop-list" style={{marginBottom:22}}>{active.map(p=><PCard key={p.id} p={p}/>)}</div>
+        </>}
+
+        {active.length===0&&pending.length===0&&<div style={{padding:"24px",textAlign:"center",fontFamily:"var(--fmono)",fontSize:12,color:"var(--text-dim)",background:"var(--bg-card)",border:"1px solid var(--border)",borderRadius:3,marginBottom:22}}>No active proposals in this sector</div>}
+
+        {archived.length>0&&<>
           <div className="past-toggle" onClick={()=>setShowPast(!showPast)}>
             <span style={{fontSize:14}}>{showPast?"▼":"▶"}</span>
-            Past Proposals ({past.length})
+            Archive ({archived.length})
             <span style={{marginLeft:"auto",fontSize:10}}>Votes are locked</span>
           </div>
-          {showPast&&<div className="prop-list" style={{marginTop:10}}>{past.map(p=><PCard key={p.id} p={p}/>)}</div>}
+          {showPast&&<div style={{marginTop:10}}>
+            {passed.length>0&&<><div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--green)",letterSpacing:".07em",margin:"14px 0 8px"}}>PASSED</div><div className="prop-list">{passed.map(p=><PCard key={p.id} p={p}/>)}</div></>}
+            {failed.length>0&&<><div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--red)",letterSpacing:".07em",margin:"14px 0 8px"}}>FAILED</div><div className="prop-list">{failed.map(p=><PCard key={p.id} p={p}/>)}</div></>}
+            {shelved.length>0&&<><div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)",letterSpacing:".07em",margin:"14px 0 8px"}}>SHELVED</div><div className="prop-list">{shelved.map(p=><PCard key={p.id} p={p}/>)}</div></>}
+          </div>}
         </>}
       </div>;
     }
@@ -847,14 +878,16 @@ export default function DDTAP({ session, onLogout }){
           {flex.map(s=>{
             const ua=savedAlloc[level][s.id]||0;
             const active=proposals.filter(p=>p.sectorId===s.id&&p.status==="voting").length;
-            const past=proposals.filter(p=>p.sectorId===s.id&&(p.status==="passed"||p.status==="failed")).length;
+            const pending=proposals.filter(p=>p.sectorId===s.id&&p.status==="pending").length;
+            const past=proposals.filter(p=>p.sectorId===s.id&&(p.status==="passed"||p.status==="failed"||p.status==="shelved")).length;
             const hasAlloc=ua>0;
             return<div key={s.id} className={`sector-card ${hasAlloc?"has-alloc":""}`} style={{borderTopColor:hasAlloc?s.color:"var(--border)"}} onClick={()=>{setSelectedSector({...s,level,levelLabel:label});setShowPast(false);}}>
               <div style={{width:8,height:8,borderRadius:"50%",background:s.color}}/>
               <div className="sector-card-name">{s.name}</div>
               <div className="sector-card-meta">
-                <span>{active} active</span>
-                {past>0&&<span>{past} past</span>}
+                <span>{active} voting</span>
+                {pending>0&&<span style={{color:"var(--gold)"}}>{pending} pending</span>}
+                {past>0&&<span>{past} archived</span>}
               </div>
               {hasAlloc&&<div className="sector-card-alloc">{ua}pts · eligible to propose & vote</div>}
               {!hasAlloc&&<div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)",marginTop:8}}>No allocation</div>}
