@@ -279,9 +279,9 @@ const SECTORS={
 };
 
 const INIT_ALLOC={
-  federal:{ff_health:25,ff_edu:20,ff_climate:15,ff_infra:10,ff_indg:0,ff_digital:0,ff_foreign:0},
-  provincial:{pf_k12:20,pf_post:15,pf_roads:15,pf_soc:10,pf_hous:10,pf_env:0},
-  municipal:{mf_roads:15,mf_parks:20,mf_libs:15,mf_comm:10,mf_plan:10,mf_bylaw:0},
+  federal:{ff_health:0,ff_edu:0,ff_climate:0,ff_infra:0,ff_indg:0,ff_digital:0,ff_foreign:0,fc_def:0,fc_cyber:0,fc_border:0,fc_civic:0},
+  provincial:{pf_k12:0,pf_post:0,pf_roads:0,pf_soc:0,pf_hous:0,pf_env:0,pc_hosp:0,pc_grid:0,pc_just:0},
+  municipal:{mf_roads:0,mf_parks:0,mf_libs:0,mf_comm:0,mf_plan:0,mf_bylaw:0,mc_water:0,mc_fire:0,mc_trans:0},
 };
 
 const INIT_PROPOSALS=[];
@@ -302,11 +302,7 @@ export default function DDTAP({ session, onLogout }){
       .then(({ data }) => {
         if (data && data.length > 0) {
           const loaded = { federal:{...INIT_ALLOC.federal}, provincial:{...INIT_ALLOC.provincial}, municipal:{...INIT_ALLOC.municipal} };
-          data.forEach(row => {
-            if (loaded[row.level] !== undefined) {
-              loaded[row.level][row.sector_id] = row.percentage;
-            }
-          });
+          data.forEach(row => { if (loaded[row.level]?.[row.sector_id] !== undefined) loaded[row.level][row.sector_id] = row.percentage; });
           setAlloc(loaded); setSavedAlloc(loaded);
         }
       });
@@ -473,13 +469,9 @@ export default function DDTAP({ session, onLogout }){
   const notify=(msg)=>{setNotif(msg);setTimeout(()=>setNotif(null),3200);};
 
   const getUA=(sector,sectorId)=>{
-    // Check flexible allocation first
-    const flex=savedAlloc[sector]?.[sectorId]||0;
-    if(flex>0)return flex;
-    // Check if this is a critical sector with personal allocation
-    const critPersonal=savedAlloc[sector]?.[sectorId];
-    if(critPersonal!==undefined)return critPersonal;
-    // Fall back to fixed critical infrastructure percentage
+    const personal=savedAlloc[sector]?.[sectorId];
+    if(personal>0)return personal;
+    // Fall back to fixed mandatory pct for critical sectors
     const crit=SECTORS[sector]?.critical.find(s=>s.id===sectorId);
     if(crit)return crit.pct;
     return 0;
