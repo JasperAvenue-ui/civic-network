@@ -291,28 +291,117 @@ export default function DDTAP({ session, onLogout }){
   const [userProfile, setUserProfile] = useState(null);
 
   useEffect(() => {
-    if (session?.user) {
-      supabase.from("users").select("*").eq("id", session.user.id).single()
-        .then(({ data }) => { if (data) setUserProfile(data); });
+    if (!session?.user) return;
 
-      supabase.from("allocations").select("*").eq("user_id", session.user.id).eq("tax_year", 2026)
-        .then(({ data }) => {
-          if (data && data.length > 0) {
-            const loaded = {
-              federal:   { ...INIT_ALLOC.federal },
-              provincial:{ ...INIT_ALLOC.provincial },
-              municipal: { ...INIT_ALLOC.municipal },
-            };
-            data.forEach(row => {
-              if (loaded[row.level]?.[row.sector_id] !== undefined) {
-                loaded[row.level][row.sector_id] = row.percentage;
-              }
+    // Load user profile
+    supabase.from("users").select("*").eq("id", session.user.id).single()
+      .then(({ data }) => { if (data) setUserProfile(data); });
+
+    // Load allocations
+    supabase.from("allocations").select("*").eq("user_id", session.user.id).eq("tax_year", 2026)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const loaded = { federal:{...INIT_ALLOC.federal}, provincial:{...INIT_ALLOC.provincial}, municipal:{...INIT_ALLOC.municipal} };
+          data.forEach(row => { if (loaded[row.level]?.[row.sector_id] !== undefined) loaded[row.level][row.sector_id] = row.percentage; });
+          setAlloc(loaded); setSavedAlloc(loaded);
+        }
+      });
+
+    // Load proposals
+    supabase.from("proposals").select("*").order("created_at", { ascending: false })
+      .then(({ data }) => {
+        if (data) {
+          // Load votes for this user
+          supabase.from("votes").select("*").eq("user_id", session.user.id)
+            .then(({ data: voteData }) => {
+              const myVotes = {};
+              (voteData || []).forEach(v => { myVotes[v.proposal_id] = v.side; });
+              // Load test results for this user
+              supabase.from("test_results").select("*").eq("user_id", session.user.id)
+                .then(({ data: testData }) => {
+                  const myTests = {};
+                  (testData || []).forEach(t => { myTests[t.proposal_id] = t.passed; });
+                  setProposals(data.map(p => ({
+                    id: p.id,
+                    title: p.title,
+                    summary: p.summary,
+                    sector: p.sector,
+                    sectorName: p.sector_name,
+                    sectorId: p.sector_id,
+                    status: p.status,
+                    author: p.author_username,
+                    authorId: p.author_id,
+                    created: p.created,
+                    deadline: p.deadline,
+                    province: p.province,
+                    municipality: p.municipality,
+                    shelveReason: p.shelve_reason,
+                    pendingAuthorReview: p.pending_author_review,
+                    forVotes: p.for_votes,
+                    againstVotes: p.against_votes,
+                    totalEligible: p.total_eligible,
+                    quorumPct: p.quorum_pct,
+                    questions: p.questions || [],
+                    userVoted: myVotes[p.id] || null,
+                    userPassedTest: myTests[p.id] || false,
+                  })));
+                });
             });
-            setAlloc(loaded);
-            setSavedAlloc(loaded);
-          }
-        });
-    }
+        }
+      });
+
+    // Load comments
+    supabase.from("comments").select("*").order("created_at", { ascending: true })
+      .then(({ data }) => {
+        if (data) {
+          const disc = {};
+          data.forEach(c => {
+            const pid = c.proposal_id;
+            if (!disc[pid]) disc[pid] = [];
+            disc[pid].push({ id: c.id, author: c.author_username, text: c.text, ts: c.created_at?.slice(0,16).replace("T"," "), parentId: c.parent_id });
+          });
+          setDiscussions(disc);
+        }
+      });
+
+    // Load ledger
+    supabase.from("ledger_entries").select("*").order("created_at", { ascending: false })
+      .then(({ data }) => { if (data) setLedger(data.map(e => ({ id: e.id, type: e.type, actor: e.actor_username, action: e.action, target: e.target, sector: e.sector, ts: e.ts, pts: e.pts }))); });
+
+    // Load notifications
+    supabase.from("notifications").select("*").eq("user_id", session.user.id).order("created_at", { ascending: false })
+      .then(({ data }) => { if (data) setNotifications(data); });
+
+    // Load proposal versions
+    supabase.from("proposal_versions").select("*").order("created_at", { ascending: true })
+      .then(({ data }) => {
+        if (data) {
+          const versions = {};
+          data.forEach(v => {
+            if (!versions[v.proposal_id]) versions[v.proposal_id] = [];
+            versions[v.proposal_id].push({ version: v.version_number, title: v.title, summary: v.summary, questions: v.questions, edited_by_username: v.edited_by_username, created_at: v.created_at?.slice(0,16).replace("T"," ") });
+          });
+          setPropVersions(versions);
+        }
+      });
+
+    // Load oversight flags
+    supabase.from("oversight_flags").select("*, oversight_votes(*)").order("created_at", { ascending: false })
+      .then(({ data }) => {
+        if (data) setOversightFlags(data.map(f => ({
+          id: f.id, proposal_id: f.proposal_id, proposal_title: f.proposal_title || "", author_id: f.author_id, author_username: f.author_username || "",
+          reason: f.reason, status: f.status, deadline: f.deadline, created_at: f.created_at?.slice(0,16).replace("T"," "),
+          votes: (f.oversight_votes || []).map(v => ({ voter: v.voter_username, decision: v.decision, reasoning: v.reasoning, ts: v.created_at?.slice(0,16).replace("T"," ") })),
+          outcome: (f.oversight_votes || [])[0]?.decision || null,
+        })));
+      });
+
+    // Load representatives
+    supabase.from("representatives").select("*").eq("citizen_id", session.user.id)
+      .then(({ data }) => { if (data) setMyReps(data); });
+    supabase.from("representatives").select("*").eq("rep_id", session.user.id)
+      .then(({ data }) => { if (data) setRepFor(data); });
+
   }, [session]);
 
   const USER = userProfile ? {
@@ -391,14 +480,33 @@ export default function DDTAP({ session, onLogout }){
   const flexTotal=(lvl)=>Object.values(alloc[lvl]).reduce((a,b)=>a+b,0);
   const nextFlexTotal=(lvl)=>Object.values(nextAlloc[lvl]).reduce((a,b)=>a+b,0);
 
-  const addComment=(proposalId,parentId=null)=>{
+  const addLedgerEntry=async(type,action,target,sector,pts="—")=>{
+    const ts=new Date().toISOString().slice(0,16).replace("T"," ");
+    const{data}=await supabase.from("ledger_entries").insert({type,actor_username:USER.username,action,target,sector,ts,pts}).select().single();
+    if(data) setLedger(prev=>[{id:data.id,type:data.type,actor:data.actor_username,action:data.action,target:data.target,sector:data.sector,ts:data.ts,pts:data.pts},...prev]);
+  };
+
+  const addComment=async(proposalId,parentId=null)=>{
     const draft=parentId?replyDraft:commentDraft;
     if(!draft.trim())return;
-    const comment={id:Date.now(),author:USER.username,text:draft.trim(),ts:new Date().toISOString().slice(0,16).replace("T"," "),parentId};
+    const{data,error}=await supabase.from("comments").insert({proposal_id:proposalId,author_id:session.user.id,author_username:USER.username,text:draft.trim(),parent_id:parentId||null}).select().single();
+    if(error){notify("Error posting comment");return;}
+    const comment={id:data.id,author:data.author_username,text:data.text,ts:data.created_at?.slice(0,16).replace("T"," "),parentId:data.parent_id};
     setDiscussions(prev=>({...prev,[proposalId]:[...(prev[proposalId]||[]),comment]}));
     if(parentId){setReplyDraft("");setReplyingTo(null);}
     else setCommentDraft("");
     notify("Comment posted ✓");
+  };
+
+  const submitTest=async(p)=>{
+    const score=p.questions.filter((q,i)=>testAns[i]===q.a).length;
+    setTestScore(score);setTestDone(true);
+    const passed=score>=5;
+    await supabase.from("test_results").upsert({proposal_id:p.id,user_id:session.user.id,passed,score,answers:testAns},{onConflict:"proposal_id,user_id"});
+    if(passed){
+      setProposals(prev=>prev.map(x=>x.id===p.id?{...x,userPassedTest:true}:x));
+      notify("Comprehension test passed — you may now vote");
+    }
   };
 
   const updateNextAlloc=(lvl,id,val)=>{
@@ -407,91 +515,78 @@ export default function DDTAP({ session, onLogout }){
     setNextAlloc(prev=>({...prev,[lvl]:{...prev[lvl],[id]:Math.min(Math.max(0,val),70-otherSum)}}));
   };
 
-  const saveNextAlloc=()=>{
-    const nid="L"+String(parseInt(ledger[0].id.slice(1))+1).padStart(4,"0");
-    setLedger(prev=>[{id:nid,type:"ALLOCATION",actor:USER.username,action:"2027 allocation saved",target:"Federal · Provincial · Municipal",sector:"All Sectors",ts:new Date().toISOString().slice(0,16).replace("T"," "),pts:"—"},...prev]);
-    notify("2027 allocation saved to civic ledger ✓");
-  };
-
-  const addNotification=(userId,type,message,proposalId=null)=>{
-    supabase.from("notifications").insert({user_id:userId,type,message,proposal_id:proposalId});
-    if(userId===session?.user?.id) setNotifications(prev=>[{id:Date.now(),type,message,proposal_id:proposalId,read:false,created_at:new Date().toISOString()},...prev]);
-  };
-
-  const saveProposalVersion=(proposal,editedByUsername)=>{
-    const versions=propVersions[proposal.id]||[];
-    const newVersion={version:versions.length+1,title:proposal.title,summary:proposal.summary,questions:proposal.questions,edited_by_username:editedByUsername,created_at:new Date().toISOString().slice(0,16).replace("T"," ")};
-    setPropVersions(prev=>({...prev,[proposal.id]:[...(prev[proposal.id]||[]),newVersion]}));
-  };
-
-  const modApprove=(pid)=>{
-    const p=proposals.find(x=>x.id===pid);
-    if(!p)return;
-    setProposals(prev=>prev.map(x=>x.id===pid?{...x,status:"voting"}:x));
-    const nid="L"+String(parseInt(ledger[0].id.slice(1))+1).padStart(4,"0");
-    setLedger(prev=>[{id:nid,type:"MODERATION",actor:USER.username,action:"Proposal approved",target:p.title,sector:`${p.sector} · ${p.sectorName}`,ts:new Date().toISOString().slice(0,16).replace("T"," "),pts:"—"},...prev]);
+  const modApprove=async(pid)=>{
+    const p=proposals.find(x=>x.id===pid);if(!p)return;
+    const deadline=new Date(Date.now()+90*86400000).toISOString().slice(0,10);
+    await supabase.from("proposals").update({status:"voting",deadline}).eq("id",pid);
+    setProposals(prev=>prev.map(x=>x.id===pid?{...x,status:"voting",deadline}:x));
+    await addLedgerEntry("MODERATION","Proposal approved",p.title,`${p.sector} · ${p.sectorName}`);
     notify(`"${p.title}" approved and is now live ✓`);
   };
 
-  const modShelve=(pid,reason)=>{
-    const p=proposals.find(x=>x.id===pid);
-    if(!p)return;
+  const modShelve=async(pid,reason)=>{
+    const p=proposals.find(x=>x.id===pid);if(!p)return;
+    await supabase.from("proposals").update({status:"shelved",shelve_reason:reason}).eq("id",pid);
     setProposals(prev=>prev.map(x=>x.id===pid?{...x,status:"shelved",shelveReason:reason}:x));
-    const nid="L"+String(parseInt(ledger[0].id.slice(1))+1).padStart(4,"0");
-    setLedger(prev=>[{id:nid,type:"MODERATION",actor:USER.username,action:"Proposal shelved",target:p.title,sector:`${p.sector} · ${p.sectorName}`,ts:new Date().toISOString().slice(0,16).replace("T"," "),pts:"—"},...prev]);
+    await addLedgerEntry("MODERATION","Proposal shelved",p.title,`${p.sector} · ${p.sectorName}`);
     notify(`"${p.title}" has been shelved`);
   };
 
-  const modEditProposal=(pid,newTitle,newSummary,newQuestions)=>{
-    const p=proposals.find(x=>x.id===pid);
-    if(!p)return;
-    saveProposalVersion(p,USER.username);
+  const modEditProposal=async(pid,newTitle,newSummary,newQuestions)=>{
+    const p=proposals.find(x=>x.id===pid);if(!p)return;
+    const versions=propVersions[pid]||[];
+    const newVersion={version:versions.length+1,title:p.title,summary:p.summary,questions:p.questions,edited_by_username:USER.username,created_at:new Date().toISOString().slice(0,16).replace("T"," ")};
+    await supabase.from("proposal_versions").insert({proposal_id:pid,version_number:newVersion.version,title:p.title,summary:p.summary,questions:p.questions,edited_by:session.user.id,edited_by_username:USER.username});
+    await supabase.from("proposals").update({title:newTitle,summary:newSummary,questions:newQuestions,pending_author_review:true}).eq("id",pid);
+    setPropVersions(prev=>({...prev,[pid]:[...(prev[pid]||[]),newVersion]}));
     setProposals(prev=>prev.map(x=>x.id===pid?{...x,title:newTitle,summary:newSummary,questions:newQuestions,pendingAuthorReview:true}:x));
+    await addLedgerEntry("MODERATION","Proposal edited",newTitle,`${p.sector} · ${p.sectorName}`);
     notify("Edits saved. Author has been notified to review.");
   };
 
-  const authorApprove=(pid,draft)=>{
-    const p=proposals.find(x=>x.id===pid);
-    if(!p)return;
-    saveProposalVersion({...p,...draft},USER.username);
-    setProposals(prev=>prev.map(x=>x.id===pid?{...x,...draft,status:"voting",pendingAuthorReview:false,deadline:new Date(Date.now()+90*86400000).toISOString().slice(0,10)}:x));
-    setAuthorEditDraft(null);
-    setShowAuthorConfirm(false);
-    const nid="L"+String(parseInt(ledger[0].id.slice(1))+1).padStart(4,"0");
-    setLedger(prev=>[{id:nid,type:"PROPOSAL",actor:USER.username,action:"Author approved — proposal now live",target:p.title,sector:`${p.sector} · ${p.sectorName}`,ts:new Date().toISOString().slice(0,16).replace("T"," "),pts:"—"},...prev]);
+  const authorApprove=async(pid,draft)=>{
+    const p=proposals.find(x=>x.id===pid);if(!p)return;
+    const deadline=new Date(Date.now()+90*86400000).toISOString().slice(0,10);
+    const versions=propVersions[pid]||[];
+    const newVersion={version:versions.length+1,title:draft.title,summary:draft.summary,questions:draft.questions,edited_by_username:USER.username,created_at:new Date().toISOString().slice(0,16).replace("T"," ")};
+    await supabase.from("proposal_versions").insert({proposal_id:pid,version_number:newVersion.version,title:draft.title,summary:draft.summary,questions:draft.questions,edited_by:session.user.id,edited_by_username:USER.username});
+    await supabase.from("proposals").update({title:draft.title,summary:draft.summary,questions:draft.questions,status:"voting",pending_author_review:false,deadline}).eq("id",pid);
+    setPropVersions(prev=>({...prev,[pid]:[...(prev[pid]||[]),newVersion]}));
+    setProposals(prev=>prev.map(x=>x.id===pid?{...x,...draft,status:"voting",pendingAuthorReview:false,deadline}:x));
+    setAuthorEditDraft(null);setShowAuthorConfirm(false);
+    await addLedgerEntry("PROPOSAL","Author approved — proposal now live",draft.title,`${p.sector} · ${p.sectorName}`);
     notify("Proposal approved and is now live ✓");
   };
 
-  const flagToOversight=(pid,reason)=>{
-    const p=proposals.find(x=>x.id===pid);
-    if(!p)return;
-    const flag={id:`f${Date.now()}`,proposal_id:pid,proposal_title:p.title,author_id:session.user.id,author_username:USER.username,reason,status:"pending",deadline:new Date(Date.now()+90*86400000).toISOString().slice(0,10),votes:[],created_at:new Date().toISOString().slice(0,16).replace("T"," ")};
-    setOversightFlags(prev=>[flag,...prev]);
+  const flagToOversight=async(pid,reason)=>{
+    const p=proposals.find(x=>x.id===pid);if(!p)return;
+    const deadline=new Date(Date.now()+90*86400000).toISOString().slice(0,10);
+    const{data}=await supabase.from("oversight_flags").insert({proposal_id:pid,proposal_title:p.title,author_id:session.user.id,author_username:USER.username,reason,status:"pending",deadline}).select().single();
+    if(data) setOversightFlags(prev=>[{id:data.id,proposal_id:pid,proposal_title:p.title,author_id:session.user.id,author_username:USER.username,reason,status:"pending",deadline,votes:[],created_at:data.created_at?.slice(0,16).replace("T"," ")},...prev]);
     notify("Flag submitted to Oversight Committee ✓");
   };
 
-  const oversightVote=(flagId,decision,reasoning)=>{
-    setOversightFlags(prev=>prev.map(f=>{
-      if(f.id!==flagId)return f;
-      const votes=[...(f.votes||[]),{voter:USER.username,decision,reasoning,ts:new Date().toISOString().slice(0,16).replace("T"," ")}];
-      const status=votes.length>=1?"resolved":"pending";
-      if(status==="resolved"){
-        const reinstate=decision==="reinstate";
-        if(reinstate) setProposals(pp=>pp.map(p=>p.id===f.proposal_id?{...p,status:"voting",shelveReason:null}:p));
-        notify(`Oversight ruled: ${reinstate?"Proposal reinstated":"Shelving upheld"}`);
-      }
-      return{...f,votes,status,outcome:decision};
-    }));
+  const oversightVote=async(flagId,decision,reasoning)=>{
+    const f=oversightFlags.find(x=>x.id===flagId);if(!f)return;
+    await supabase.from("oversight_votes").insert({flag_id:flagId,voter_id:session.user.id,voter_username:USER.username,decision,reasoning});
+    await supabase.from("oversight_flags").update({status:"resolved"}).eq("id",flagId);
+    const reinstate=decision==="reinstate";
+    if(reinstate) await supabase.from("proposals").update({status:"voting",shelve_reason:null}).eq("id",f.proposal_id);
+    setOversightFlags(prev=>prev.map(x=>x.id===flagId?{...x,status:"resolved",outcome:decision,votes:[...x.votes,{voter:USER.username,decision,reasoning,ts:new Date().toISOString().slice(0,16).replace("T"," ")}]}:x));
+    if(reinstate) setProposals(prev=>prev.map(p=>p.id===f.proposal_id?{...p,status:"voting",shelveReason:null}:p));
+    notify(`Oversight ruled: ${reinstate?"Proposal reinstated":"Shelving upheld"}`);
   };
 
-  // Load reps from Supabase
-  useEffect(()=>{
-    if(!session?.user)return;
-    supabase.from("representatives").select("*").eq("citizen_id",session.user.id)
-      .then(({data})=>{ if(data) setMyReps(data); });
-    supabase.from("representatives").select("*").eq("rep_id",session.user.id)
-      .then(({data})=>{ if(data) setRepFor(data); });
-  },[session]);
+  const saveNextAlloc=async()=>{
+    await addLedgerEntry("ALLOCATION","2027 allocation saved","Federal · Provincial · Municipal","All Sectors");
+    notify("2027 allocation saved to civic ledger ✓");
+  };
+
+  const saveAlloc=async()=>{
+    setSavedAlloc(alloc);
+    await addLedgerEntry("ALLOCATION","Annual allocation updated","Federal · Provincial · Municipal","All Sectors");
+    notify("Allocations saved to civic ledger ✓");
+  };
 
   const assignRep=async(sectorId,sectorName,level,repUsername)=>{
     if(repUsername===USER.username){notify("You cannot represent yourself");return;}
@@ -508,14 +603,11 @@ export default function DDTAP({ session, onLogout }){
   const removeRep=async(sectorId,sectorName)=>{
     await supabase.from("representatives").delete().eq("citizen_id",session.user.id).eq("sector_id",sectorId);
     setMyReps(prev=>prev.filter(r=>r.sector_id!==sectorId));
-    // Clear any votes cast by rep on active proposals in this sector
     setProposals(prev=>prev.map(p=>{
       if(p.sectorId!==sectorId||p.status!=="voting")return p;
       if(p.repVote){
         const wasFor=p.repVote==="for",wasAgainst=p.repVote==="against";
-        return{...p,repVote:null,userVoted:null,
-          forVotes:wasFor?p.forVotes-1:p.forVotes,
-          againstVotes:wasAgainst?p.againstVotes-1:p.againstVotes};
+        return{...p,repVote:null,userVoted:null,forVotes:wasFor?p.forVotes-1:p.forVotes,againstVotes:wasAgainst?p.againstVotes-1:p.againstVotes};
       }
       return p;
     }));
@@ -523,10 +615,7 @@ export default function DDTAP({ session, onLogout }){
   };
 
   const castRepVote=(pid,side,citizenUsername)=>{
-    setProposals(prev=>prev.map(p=>{
-      if(p.id!==pid)return p;
-      return{...p,repVote:side};
-    }));
+    setProposals(prev=>prev.map(p=>p.id!==pid?p:{...p,repVote:side}));
     notify(`Vote cast on behalf of @${citizenUsername} ✓`);
   };
 
@@ -536,48 +625,51 @@ export default function DDTAP({ session, onLogout }){
     setAlloc(prev=>({...prev,[lvl]:{...prev[lvl],[id]:Math.min(Math.max(0,val),70-otherSum)}}));
   };
 
-  const saveAlloc=()=>{
-    setSavedAlloc(alloc);
-    const nid="L"+String(parseInt(ledger[0].id.slice(1))+1).padStart(4,"0");
-    setLedger(p=>[{id:nid,type:"ALLOCATION",actor:USER.username,action:"Annual allocation updated",target:"Federal · Provincial · Municipal",sector:"All Sectors",ts:new Date().toISOString().slice(0,16).replace("T"," "),pts:"—"},...p]);
-    notify("Allocations saved to civic ledger ✓");
-  };
-
-  const castVote=(pid,side)=>{
-    const p=proposals.find(x=>x.id===pid);
-    if(!p)return;
+  const castVote=async(pid,side)=>{
+    const p=proposals.find(x=>x.id===pid);if(!p)return;
     const toggling=p.userVoted===side;
-    const nid="L"+String(parseInt(ledger[0].id.slice(1))+1).padStart(4,"0");
-    const entry={id:nid,type:"VOTE",actor:USER.username,action:toggling?`Retracted vote on`:`Voted ${side.toUpperCase()}`,target:p.title,sector:`${p.sector.charAt(0).toUpperCase()+p.sector.slice(1)} · ${p.sectorName}`,ts:new Date().toISOString().slice(0,16).replace("T"," "),pts:`${getUA(p.sector,p.sectorId)}pts`};
+    const ua=getUA(p.sector,p.sectorId);
+    if(toggling){
+      await supabase.from("votes").delete().eq("proposal_id",pid).eq("user_id",session.user.id);
+    } else {
+      await supabase.from("votes").upsert({proposal_id:pid,user_id:session.user.id,side},{onConflict:"proposal_id,user_id"});
+    }
     setProposals(prev=>prev.map(x=>{
       if(x.id!==pid)return x;
       const wasFor=x.userVoted==="for",wasAgainst=x.userVoted==="against";
       let fv=x.forVotes,av=x.againstVotes;
-      if(!toggling){if(side==="for"){fv++;if(wasAgainst)av--;}else{av++;if(wasFor)fv--;}}
-      else{if(side==="for")fv--;else av--;}
+      if(!toggling){if(side==="for"){fv+=ua;if(wasAgainst)av-=ua;}else{av+=ua;if(wasFor)fv-=ua;}}
+      else{if(side==="for")fv-=ua;else av-=ua;}
       return{...x,forVotes:fv,againstVotes:av,userVoted:toggling?null:side};
     }));
-    setLedger(prev=>[entry,...prev]);
+    await addLedgerEntry("VOTE",toggling?`Retracted vote on`:`Voted ${side.toUpperCase()}`,p.title,`${p.sector.charAt(0).toUpperCase()+p.sector.slice(1)} · ${p.sectorName}`,`${ua}pts`);
     notify(toggling?"Vote retracted":"Vote recorded on civic ledger ✓");
   };
 
-  const submitTest=(p)=>{
-    const score=p.questions.filter((q,i)=>testAns[i]===q.a).length;
-    setTestScore(score);setTestDone(true);
-    if(score>=5){setProposals(prev=>prev.map(x=>x.id===p.id?{...x,userPassedTest:true}:x));notify("Comprehension test passed — you may now vote");}
-  };
-
-  const createProposal=()=>{
+  const createProposal=async()=>{
     const all3=[...SECTORS.federal.critical,...SECTORS.federal.flexible,...SECTORS.provincial.critical,...SECTORS.provincial.flexible,...SECTORS.municipal.critical,...SECTORS.municipal.flexible];
     const sec=all3.find(s=>s.id===newProp.sectorId);
     const lvl=sec.id.startsWith("f")?"federal":sec.id.startsWith("p")?"provincial":"municipal";
     const questions=quizQs.map(q=>({q:q.q,opts:q.opts,a:q.a}));
-    setProposals(prev=>[{id:`p${Date.now()}`,title:newProp.title,sector:lvl,sectorName:sec.name,sectorId:sec.id,status:"pending",author:USER.username,created:new Date().toISOString().slice(0,10),deadline:null,summary:newProp.summary,forVotes:0,againstVotes:0,totalEligible:0,quorumPct:0,userVoted:null,userPassedTest:false,questions,shelveReason:null,pendingAuthorReview:false,province:USER.province,municipality:USER.municipality},...prev]);
+    const{data,error}=await supabase.from("proposals").insert({
+      title:newProp.title, summary:newProp.summary, sector:lvl, sector_name:sec.name, sector_id:sec.id,
+      status:"pending", author_id:session.user.id, author_username:USER.username,
+      created:new Date().toISOString().slice(0,10), province:USER.province, municipality:USER.municipality,
+      questions, for_votes:0, against_votes:0, total_eligible:0, quorum_pct:0, pending_author_review:false,
+    }).select().single();
+    if(error){notify("Error submitting proposal");return;}
+    setProposals(prev=>[{
+      id:data.id, title:data.title, summary:data.summary, sector:data.sector, sectorName:data.sector_name,
+      sectorId:data.sector_id, status:data.status, author:data.author_username, authorId:data.author_id,
+      created:data.created, deadline:data.deadline, province:data.province, municipality:data.municipality,
+      shelveReason:null, pendingAuthorReview:false, forVotes:0, againstVotes:0, totalEligible:0, quorumPct:0,
+      questions:data.questions||[], userVoted:null, userPassedTest:false,
+    },...prev]);
     setShowCreate(false);
     setNewProp({title:"",sectorId:"ff_health",summary:""});
     setQuizQs(Array.from({length:10},(_,i)=>({id:i,q:"",opts:["","","",""],a:0})));
     setCreateStep(1);
-    notify("Proposal submitted to civic ledger ✓");
+    notify("Proposal submitted ✓");
   };
 
   const navTo=(v)=>{setView(v);setSidebarOpen(false);if(v==="profile")setViewingProfile(null);};
