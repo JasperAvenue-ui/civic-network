@@ -1143,18 +1143,26 @@ export default function DDTAP({ session, onLogout }){
   };
 
   const About=()=><div className="content">
-    <div className="about-tabs">
-      <div className={`about-tab ${aboutTab==="ddtap"?"active":""}`} onClick={()=>setAboutTab("ddtap")}>The Civic Network</div>
-      <div className={`about-tab ${aboutTab==="vg"?"active":""}`} onClick={()=>setAboutTab("vg")}>Victory Gardens</div>
-      <div className={`about-tab ${aboutTab==="jasper"?"active":""}`} onClick={()=>setAboutTab("jasper")}>Jasper Avenue</div>
-    </div>
-    {aboutTab==="ddtap"&&<AboutDDTAP/>}
-    {aboutTab==="vg"&&<AboutVG/>}
-    {aboutTab==="jasper"&&<AboutJasper/>}
+    <div style={{fontFamily:"var(--fdisplay)",fontSize:20,fontWeight:700,marginBottom:6}}>The Projects</div>
+    <div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)",marginBottom:28}}>Full documentation for each project in the Civic Network ecosystem.</div>
+    {[
+      {title:"The Civic Network",sub:"Direct Democracy Tax Allocation Platform",url:"https://docs.google.com/document/d/1zIXFUa1ykOP8Cs8Sd7P3D8dUzFOOurWJPVlLG3bMBIo/edit?usp=sharing",icon:"🏛️"},
+      {title:"Victory Gardens",sub:"Community Food Network · Edmonton",url:"https://docs.google.com/document/d/1r7U6ENUMY8uzv7QbXcjP_MqKDxhWuh65K1gzVztbMIw/edit?usp=sharing",icon:"🌱"},
+      {title:"Jasper Avenue",sub:"Adult Puppet Series · Edmonton, Alberta",url:"https://docs.google.com/document/d/1inE6Eh1vSrOJZPwOnqB5q_Cavck1Blw1xsyZOpZ_ioo/edit?usp=sharing",icon:"🎭"},
+    ].map(p=><a key={p.title} href={p.url} target="_blank" rel="noreferrer" style={{display:"flex",alignItems:"center",gap:18,padding:"22px 24px",background:"var(--bg-card)",border:"1px solid var(--border)",borderRadius:3,marginBottom:12,textDecoration:"none",transition:"all .15s",cursor:"pointer"}}
+      onMouseEnter={e=>{e.currentTarget.style.borderColor="var(--gold)";e.currentTarget.style.background="var(--bg-hover)";}}
+      onMouseLeave={e=>{e.currentTarget.style.borderColor="var(--border)";e.currentTarget.style.background="var(--bg-card)";}}>
+      <span style={{fontSize:28,flexShrink:0}}>{p.icon}</span>
+      <div style={{flex:1}}>
+        <div style={{fontFamily:"var(--fdisplay)",fontSize:16,fontWeight:600,color:"var(--cream)",marginBottom:4}}>{p.title}</div>
+        <div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)"}}>{p.sub}</div>
+      </div>
+      <span style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--gold)",flexShrink:0}}>Read →</span>
+    </a>)}
   </div>;
 
   const renderModDashboard=()=>{
-    const pending=proposals.filter(p=>p.status==="pending");
+    const pending=proposals;
     const modSelected=modSelectedId?proposals.find(p=>p.id===modSelectedId):null;
 
     if(modSelected){
@@ -1335,6 +1343,7 @@ export default function DDTAP({ session, onLogout }){
     return<div className="content">
       <div style={{fontFamily:"var(--fdisplay)",fontSize:20,fontWeight:700,marginBottom:6}}>Oversight Committee</div>
       <div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)",marginBottom:22}}>You are reviewing moderator decisions on shelved proposals at the request of authors. Votes must be cast within 90 days.</div>
+
       {active.length>0&&<><div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--gold)",marginBottom:10,letterSpacing:".06em"}}>REQUIRES YOUR VOTE</div>
       {active.map(f=>{
         const daysLeft=Math.ceil((new Date(f.deadline)-new Date())/(1000*60*60*24));
@@ -1347,7 +1356,21 @@ export default function DDTAP({ session, onLogout }){
           <div style={{fontSize:12,color:"var(--cream-dim)",marginTop:6}}>{f.reason.length>100?f.reason.slice(0,100)+"…":f.reason}</div>
         </div>;
       })}</>}
-      {archived.length>0&&<><div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)",marginTop:22,marginBottom:10,letterSpacing:".06em"}}>ARCHIVED · RESOLVED</div>
+
+      <div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--gold)",marginTop:22,marginBottom:10,letterSpacing:".06em"}}>ALL PROPOSALS</div>
+      {proposals.length===0&&<div className="card"><div style={{fontFamily:"var(--fmono)",fontSize:12,color:"var(--text-dim)"}}>No proposals submitted yet.</div></div>}
+      {proposals.map(p=><div key={p.id} className="mod-card" onClick={()=>setSelectedId(p.id)&&setView("proposal")}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",gap:10}}>
+          <div>
+            <div style={{fontFamily:"var(--fdisplay)",fontSize:15,fontWeight:600,marginBottom:4}}>{p.title}</div>
+            <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)"}}>By <UserLink username={p.author}/> · {p.sector.toUpperCase()} · {p.sectorName} · Filed {p.created}</div>
+          </div>
+          <Badge status={p.status}/>
+        </div>
+        <div style={{marginTop:8,fontSize:12,color:"var(--cream-dim)"}}>{p.summary.length>120?p.summary.slice(0,120)+"…":p.summary}</div>
+      </div>)}
+
+      {archived.length>0&&<><div style={{fontFamily:"var(--fmono)",fontSize:11,color:"var(--text-dim)",marginTop:22,marginBottom:10,letterSpacing:".06em"}}>ARCHIVED · RESOLVED FLAGS</div>
       {archived.map(f=><div key={f.id} className="flag-card" style={{cursor:"pointer",opacity:.7}} onClick={()=>setOversightSelectedId(f.id)}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
           <div style={{fontFamily:"var(--fdisplay)",fontSize:14,fontWeight:600}}>{f.proposal_title}</div>
@@ -1355,7 +1378,8 @@ export default function DDTAP({ session, onLogout }){
         </div>
         <div style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)",marginTop:4}}>Resolved · {f.votes[0]?.ts}</div>
       </div>)}</>}
-      {oversightFlags.length===0&&<div className="card"><div style={{fontFamily:"var(--fmono)",fontSize:12,color:"var(--text-dim)"}}>No flags submitted yet.</div></div>}
+
+      {oversightFlags.length===0&&active.length===0&&<div style={{fontFamily:"var(--fmono)",fontSize:12,color:"var(--text-dim)",marginTop:8}}>No flags submitted yet.</div>}
     </div>;
   };
 
