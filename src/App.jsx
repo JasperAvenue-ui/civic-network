@@ -377,6 +377,8 @@ export default function DDTAP({ session, onLogout }){
   const[sidebarOpen,setSidebarOpen]=useState(false);
   const[viewingProfile,setViewingProfile]=useState(null);
 
+  const notify=(msg)=>{setNotif(msg);setTimeout(()=>setNotif(null),3200);};
+
   const getUA=(sector,sectorId)=>{
     // Check flexible allocation first
     const flex=savedAlloc[sector]?.[sectorId]||0;
