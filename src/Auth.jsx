@@ -127,9 +127,20 @@ export default function Auth({onLogin}){
       await supabase.from("users").insert({id:data.user.id,username:availableUsername,full_name:availableUsername,province,municipality,tax_paid:12400});
       const rows=[];
       ["federal","provincial","municipal"].forEach(lvl=>{
+        // Flexible allocations
         SECTORS[lvl].flexible.forEach(s=>{
           rows.push({user_id:data.user.id,level:lvl,sector_id:s.id,percentage:alloc[lvl][s.id]||0,tax_year:2026});
         });
+        // Unallocated flexible % split evenly into critical infrastructure sectors
+        const used=Object.values(alloc[lvl]).reduce((a,b)=>a+b,0);
+        const unallocated=70-used;
+        if(unallocated>0){
+          const critSectors=SECTORS[lvl].critical;
+          const perCrit=Math.floor((unallocated/critSectors.length)*100)/100;
+          critSectors.forEach(s=>{
+            rows.push({user_id:data.user.id,level:lvl,sector_id:s.id,percentage:perCrit,tax_year:2026});
+          });
+        }
       });
       if(rows.length>0)await supabase.from("allocations").insert(rows);
       onLogin(data.session);

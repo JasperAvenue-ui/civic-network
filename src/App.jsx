@@ -302,7 +302,11 @@ export default function DDTAP({ session, onLogout }){
       .then(({ data }) => {
         if (data && data.length > 0) {
           const loaded = { federal:{...INIT_ALLOC.federal}, provincial:{...INIT_ALLOC.provincial}, municipal:{...INIT_ALLOC.municipal} };
-          data.forEach(row => { if (loaded[row.level]?.[row.sector_id] !== undefined) loaded[row.level][row.sector_id] = row.percentage; });
+          data.forEach(row => {
+            if (loaded[row.level] !== undefined) {
+              loaded[row.level][row.sector_id] = row.percentage;
+            }
+          });
           setAlloc(loaded); setSavedAlloc(loaded);
         }
       });
@@ -472,7 +476,10 @@ export default function DDTAP({ session, onLogout }){
     // Check flexible allocation first
     const flex=savedAlloc[sector]?.[sectorId]||0;
     if(flex>0)return flex;
-    // Check critical infrastructure
+    // Check if this is a critical sector with personal allocation
+    const critPersonal=savedAlloc[sector]?.[sectorId];
+    if(critPersonal!==undefined)return critPersonal;
+    // Fall back to fixed critical infrastructure percentage
     const crit=SECTORS[sector]?.critical.find(s=>s.id===sectorId);
     if(crit)return crit.pct;
     return 0;
