@@ -377,7 +377,15 @@ export default function DDTAP({ session, onLogout }){
   const[sidebarOpen,setSidebarOpen]=useState(false);
   const[viewingProfile,setViewingProfile]=useState(null);
 
-  const notify=(msg)=>{setNotif(msg);setTimeout(()=>setNotif(null),3200);};
+  const getUA=(sector,sectorId)=>{
+    // Check flexible allocation first
+    const flex=savedAlloc[sector]?.[sectorId]||0;
+    if(flex>0)return flex;
+    // Check critical infrastructure
+    const crit=SECTORS[sector]?.critical.find(s=>s.id===sectorId);
+    if(crit)return crit.pct;
+    return 0;
+  };
   const flexTotal=(lvl)=>Object.values(alloc[lvl]).reduce((a,b)=>a+b,0);
   const nextFlexTotal=(lvl)=>Object.values(nextAlloc[lvl]).reduce((a,b)=>a+b,0);
 
@@ -538,7 +546,7 @@ export default function DDTAP({ session, onLogout }){
     if(!p)return;
     const toggling=p.userVoted===side;
     const nid="L"+String(parseInt(ledger[0].id.slice(1))+1).padStart(4,"0");
-    const entry={id:nid,type:"VOTE",actor:USER.username,action:toggling?`Retracted vote on`:`Voted ${side.toUpperCase()}`,target:p.title,sector:`${p.sector.charAt(0).toUpperCase()+p.sector.slice(1)} · ${p.sectorName}`,ts:new Date().toISOString().slice(0,16).replace("T"," "),pts:`${savedAlloc[p.sector]?.[p.sectorId]||0}pts`};
+    const entry={id:nid,type:"VOTE",actor:USER.username,action:toggling?`Retracted vote on`:`Voted ${side.toUpperCase()}`,target:p.title,sector:`${p.sector.charAt(0).toUpperCase()+p.sector.slice(1)} · ${p.sectorName}`,ts:new Date().toISOString().slice(0,16).replace("T"," "),pts:`${getUA(p.sector,p.sectorId)}pts`};
     setProposals(prev=>prev.map(x=>{
       if(x.id!==pid)return x;
       const wasFor=x.userVoted==="for",wasAgainst=x.userVoted==="against";
@@ -592,7 +600,7 @@ export default function DDTAP({ session, onLogout }){
   };
 
   const PCard=({p})=>{
-    const ua=savedAlloc[p.sector]?.[p.sectorId]||0;
+    const ua=getUA(p.sector,p.sectorId);
     return<div className={`prop-card s-${p.status}`} onClick={()=>openProp(p)}>
       <div className="prop-head"><div className="prop-title">{p.title}</div><Badge status={p.status}/></div>
       <div className="prop-meta"><span>{p.sector.toUpperCase()} · {p.sectorName.toUpperCase()}</span><span>by <UserLink username={p.author}/></span>{p.deadline&&<span>Closes {p.deadline}</span>}{ua>0?<span style={{color:"var(--blue)"}}>Your weight: {ua}pts</span>:<span style={{color:"var(--red)"}}>No allocation</span>}</div>
@@ -928,7 +936,7 @@ export default function DDTAP({ session, onLogout }){
         </div></div>}
       </div>;
     }
-    const ua=savedAlloc[p.sector]?.[p.sectorId]||0;
+    const ua=getUA(p.sector,p.sectorId);
     const inJurisdiction=p.sector==="federal"||(p.sector==="provincial"&&p.province===USER.province)||(p.sector==="municipal"&&p.municipality===USER.municipality);
     const canVote=p.status==="voting"&&ua>0&&p.userPassedTest&&p.questions.length>0&&inJurisdiction;
     const tot=p.forVotes+p.againstVotes,fp=tot>0?Math.round((p.forVotes/tot)*100):0;
