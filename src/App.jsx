@@ -468,13 +468,19 @@ export default function DDTAP({ session, onLogout }){
 
   const notify=(msg)=>{setNotif(msg);setTimeout(()=>setNotif(null),3200);};
 
+  const getCritUA=(sector,sectorId)=>{
+    const critSector=SECTORS[sector]?.critical.find(s=>s.id===sectorId);
+    if(!critSector)return 0;
+    const flexUsed=SECTORS[sector].flexible.reduce((sum,s)=>sum+(savedAlloc[sector]?.[s.id]||0),0);
+    const unallocated=Math.max(0,70-flexUsed);
+    const critCount=SECTORS[sector].critical.length;
+    return critSector.pct+(unallocated/critCount);
+  };
+
   const getUA=(sector,sectorId)=>{
-    const personal=savedAlloc[sector]?.[sectorId];
-    if(personal>0)return personal;
-    // Fall back to fixed mandatory pct for critical sectors
-    const crit=SECTORS[sector]?.critical.find(s=>s.id===sectorId);
-    if(crit)return crit.pct;
-    return 0;
+    const isCrit=SECTORS[sector]?.critical.some(s=>s.id===sectorId);
+    if(isCrit)return getCritUA(sector,sectorId);
+    return savedAlloc[sector]?.[sectorId]||0;
   };
   const flexTotal=(lvl)=>Object.values(alloc[lvl]).reduce((a,b)=>a+b,0);
   const nextFlexTotal=(lvl)=>Object.values(nextAlloc[lvl]).reduce((a,b)=>a+b,0);
@@ -841,7 +847,7 @@ export default function DDTAP({ session, onLogout }){
       {taxYearMode==="next"&&<div className="info-box">You are planning your 2027 allocation. This will not affect your current voting rights — those are set by your 2026 allocation. Save your plan before the 2027 tax deadline.</div>}
       <div className="lvl-tabs">{["federal","provincial","municipal"].map(l=><div key={l} className={`lvl-tab ${govLevel===l?"active":""}`} onClick={()=>setGovLevel(l)}>{l.toUpperCase()}</div>)}</div>
       {!isLocked&&<div className="rem-bar"><span style={{color:"var(--text-dim)"}}>FLEXIBLE REMAINING:</span><span className="rem-val">{r}%</span><div className="rem-track"><div className="rem-fill" style={{width:`${(fu/70)*100}%`}}/></div><span style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)"}}>{fu}/70 used</span></div>}
-      <div className="crit-sec"><div className="crit-lbl">🔒 CRITICAL INFRASTRUCTURE (30% MANDATORY + YOUR UNALLOCATED SHARE)</div><div className="crit-grid">{secs.critical.map(s=>{const total=(savedAlloc[lvl]?.[s.id]||0)+s.pct;return<div key={s.id} className="crit-item"><span className="crit-name">{s.name}</span><span className="crit-pct">{total}%</span></div>;})}</div></div>
+      <div className="crit-sec"><div className="crit-lbl">🔒 CRITICAL INFRASTRUCTURE — MANDATORY + YOUR UNALLOCATED SHARE</div><div className="crit-grid">{secs.critical.map(s=>{const total=getCritUA(lvl,s.id);return<div key={s.id} className="crit-item"><span className="crit-name">{s.name}</span><span className="crit-pct">{total%1===0?total:total.toFixed(2)}%</span></div>;})}</div></div>
       <div className="card"><div className="ctitle">Flexible Allocation — 70%{isLocked&&" · LOCKED"}</div>
         {secs.flexible.map(s=>{
           const val=curAlloc[lvl][s.id]||0;
@@ -884,7 +890,7 @@ export default function DDTAP({ session, onLogout }){
       const shelved=sectorProposals.filter(p=>p.status==="shelved");
       const archived=[...passed,...failed,...shelved];
       const isCritSector=SECTORS[selectedSector.level]?.critical.some(s=>s.id===selectedSector.id);
-      const ua=isCritSector?(s=>s?(savedAlloc[selectedSector.level]?.[selectedSector.id]||0)+s.pct:0)(SECTORS[selectedSector.level]?.critical.find(s=>s.id===selectedSector.id)):savedAlloc[selectedSector.level]?.[selectedSector.id]||0;
+      const ua=isCritSector?getCritUA(selectedSector.level,selectedSector.id):savedAlloc[selectedSector.level]?.[selectedSector.id]||0;
       return<div className="content">
         <button className="back-btn" onClick={()=>{setSelectedSector(null);setShowPast(false);}}>← Back to Sectors</button>
         <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:6}}>
@@ -960,7 +966,7 @@ export default function DDTAP({ session, onLogout }){
               <style>{`.sector-card[data-id="${s.id}"]::before{background:#c8a84b}`}</style>
               <div style={{width:8,height:8,borderRadius:"50%",background:"#c8a84b"}}/>
               <div className="sector-card-name">{s.name}</div>
-              <div className="sector-card-meta"><span>{count} proposal{count!==1?"s":""}</span><span style={{color:"var(--gold)"}}>🔒 {(savedAlloc[level]?.[s.id]||0)+s.pct}% total</span></div>
+              <div className="sector-card-meta"><span>{count} proposal{count!==1?"s":""}</span><span style={{color:"var(--gold)"}}>🔒 {(v=>v%1===0?v:v.toFixed(2))(getCritUA(level,s.id))}% total</span></div>
             </div>;
           })}
         </div>
@@ -1236,7 +1242,7 @@ export default function DDTAP({ session, onLogout }){
         <div className="stat-card"><div className="stat-val">${USER.taxPaid.toLocaleString()}</div><div className="stat-lbl">2026 TAX CONTRIBUTION</div></div>
         <div className="stat-card"><div className="stat-val">{voted}</div><div className="stat-lbl">PROPOSALS VOTED</div></div>
       </div>}
-      {isOwnProfile&&<div className="card" style={{marginBottom:14}}><div className="ctitle">Participation Points by Sector</div><div className="part-grid">{["federal","provincial","municipal"].map(lvl=><div key={lvl} className="part-card"><div className="part-lvl">{lvl.toUpperCase()}</div>{SECTORS[lvl].critical.map(s=><div key={s.id} className="part-row"><span className="part-nm">{s.name}</span><span className="part-pts">{(savedAlloc[lvl]?.[s.id]||0)+s.pct}pts</span></div>)}{SECTORS[lvl].flexible.filter(s=>savedAlloc[lvl][s.id]>0).map(s=><div key={s.id} className="part-row"><span className="part-nm" style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:6,height:6,borderRadius:"50%",background:s.color,display:"inline-block",flexShrink:0}}/>{s.name.length>17?s.name.slice(0,17)+"…":s.name}</span><span className="part-pts">{savedAlloc[lvl][s.id]}pts</span></div>)}</div>)}</div></div>}
+      {isOwnProfile&&<div className="card" style={{marginBottom:14}}><div className="ctitle">Participation Points by Sector</div><div className="part-grid">{["federal","provincial","municipal"].map(lvl=><div key={lvl} className="part-card"><div className="part-lvl">{lvl.toUpperCase()}</div>{SECTORS[lvl].critical.map(s=>{const total=getCritUA(lvl,s.id);return<div key={s.id} className="part-row"><span className="part-nm">{s.name}</span><span className="part-pts">{total%1===0?total:total.toFixed(1)}pts</span></div>;})} {SECTORS[lvl].flexible.filter(s=>savedAlloc[lvl][s.id]>0).map(s=><div key={s.id} className="part-row"><span className="part-nm" style={{display:"flex",alignItems:"center",gap:4}}><span style={{width:6,height:6,borderRadius:"50%",background:s.color,display:"inline-block",flexShrink:0}}/>{s.name.length>17?s.name.slice(0,17)+"…":s.name}</span><span className="part-pts">{savedAlloc[lvl][s.id]}pts</span></div>)}</div>)}</div></div>}
       {myProps.length>0&&<div className="card" style={{marginBottom:14}}><div className="ctitle">Proposals Filed</div><div className="prop-list">{myProps.map(p=><PCard key={p.id} p={p}/>)}</div></div>}
       {(()=>{
         const userComments=Object.entries(discussions).flatMap(([propId,comments])=>
