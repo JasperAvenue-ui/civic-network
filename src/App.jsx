@@ -818,7 +818,6 @@ export default function DDTAP({ session, onLogout }){
     return<div className="content">
       <div className="stats-grid">
         <div className="stat-card"><div className="stat-val">${USER.taxPaid.toLocaleString()}</div><div className="stat-lbl">TAX YEAR 2026</div><div className="stat-sub">Annual contribution</div></div>
-        <div className="stat-card"><div className="stat-val">{flexTotal("federal")+30}</div><div className="stat-lbl">FEDERAL POINTS</div><div className="stat-sub">Flex: {flexTotal("federal")} · Crit: 30</div></div>
         <div className="stat-card"><div className="stat-val">{av}</div><div className="stat-lbl">ACTIVE VOTES</div><div className="stat-sub">{proposals.filter(p=>p.status==="deliberation").length} in deliberation</div></div>
         <div className="stat-card"><div className="stat-val">{voted}</div><div className="stat-lbl">VOTES CAST</div><div className="stat-sub">{proposals.filter(p=>p.status==="voting"&&!p.userVoted).length} awaiting your vote</div></div>
       </div>
