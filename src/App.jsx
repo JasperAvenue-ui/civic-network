@@ -846,7 +846,7 @@ export default function DDTAP({ session, onLogout }){
       {taxYearMode==="next"&&<div className="info-box">You are planning your 2027 allocation. This will not affect your current voting rights — those are set by your 2026 allocation. Save your plan before the 2027 tax deadline.</div>}
       <div className="lvl-tabs">{["federal","provincial","municipal"].map(l=><div key={l} className={`lvl-tab ${govLevel===l?"active":""}`} onClick={()=>setGovLevel(l)}>{l.toUpperCase()}</div>)}</div>
       {!isLocked&&<div className="rem-bar"><span style={{color:"var(--text-dim)"}}>FLEXIBLE REMAINING:</span><span className="rem-val">{r}%</span><div className="rem-track"><div className="rem-fill" style={{width:`${(fu/70)*100}%`}}/></div><span style={{fontFamily:"var(--fmono)",fontSize:10,color:"var(--text-dim)"}}>{fu}/70 used</span></div>}
-      <div className="crit-sec"><div className="crit-lbl">🔒 CRITICAL INFRASTRUCTURE — MANDATORY + YOUR UNALLOCATED SHARE</div><div className="crit-grid">{secs.critical.map(s=>{const total=getCritUA(lvl,s.id);return<div key={s.id} className="crit-item"><span className="crit-name">{s.name}</span><span className="crit-pct">{total%1===0?total:total.toFixed(2)}%</span></div>;})}</div></div>
+      <div className="crit-sec"><div className="crit-lbl">🔒 CRITICAL INFRASTRUCTURE</div><div className="crit-grid">{secs.critical.map(s=>{const total=getCritUA(lvl,s.id);return<div key={s.id} className="crit-item"><span className="crit-name">{s.name}</span><span className="crit-pct">{total%1===0?total:total.toFixed(2)}%</span></div>;})}</div></div>
       <div className="card"><div className="ctitle">Flexible Allocation — 70%{isLocked&&" · LOCKED"}</div>
         {secs.flexible.map(s=>{
           const val=curAlloc[lvl][s.id]||0;
